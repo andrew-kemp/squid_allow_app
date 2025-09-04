@@ -5,7 +5,7 @@ from publicsuffix2 import get_sld
 
 app = Flask(__name__)
 
-# Paths
+# Update these paths as needed for your system!
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
 
@@ -31,6 +31,7 @@ def get_blocked_domains():
 
 def get_parent_domain(domain):
     parent = get_sld(domain)
+    # Only return parent if it's different from the original
     return f".{parent}" if parent and parent != domain else f".{domain}"
 
 def get_allow_list():
@@ -50,6 +51,8 @@ def add_to_allow_list(domain):
 def index():
     blocked_domains = get_blocked_domains()
     allow_list = get_allow_list()
+
+    # Map domains to their parent domain for allow check
     display_domains = []
     for domain in blocked_domains:
         parent = get_parent_domain(domain)
@@ -59,6 +62,7 @@ def index():
             "parent": parent,
             "allowed": allowed
         })
+
     return render_template("index.html", domains=display_domains)
 
 @app.route("/add_allow", methods=["POST"])
