@@ -1,0 +1,1 @@
+# squid_allow_app
