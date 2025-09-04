@@ -1,49 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Squid Blocked Domains</title>
-    <style>
-        table { border-collapse: collapse; width: 60%; margin: auto; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        button[disabled] { background: #ccc; color: #666; }
-        .center { text-align: center; }
-        .controls { margin-bottom: 20px; text-align: center; }
-    </style>
+    <title>Squid Allow List Management</title>
 </head>
 <body>
-    <h2 class="center">Squid Blocked Domains</h2>
-    <div class="controls">
-        <form action="/restart_squid" method="post" style="display:inline;">
-            <button type="submit">Restart Squid</button>
-        </form>
-        {% if not show_only_blocked %}
-            <form action="/" method="get" style="display:inline;">
-                <input type="hidden" name="blockedonly" value="1">
-                <button type="submit">Refresh (Hide Added)</button>
-            </form>
-        {% else %}
-            <form action="/" method="get" style="display:inline;">
-                <button type="submit">Show All</button>
-            </form>
-        {% endif %}
-    </div>
-    <table>
+    <h1>Squid Allow List Management</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li style="color:{{ 'red' if category == 'danger' else 'green' }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('refresh') }}" method="get">
+        <button type="submit">Refresh (show only not-allowed)</button>
+    </form>
+    <form action="{{ url_for('index') }}" method="get">
+        <button type="submit">Show All</button>
+    </form>
+
+    <table border="1">
         <tr>
             <th>Domain</th>
+            <th>Parent</th>
+            <th>Allowed?</th>
             <th>Action</th>
         </tr>
         {% for d in domains %}
         <tr>
             <td>{{ d.domain }}</td>
-            <td class="center">
-                {% if d.allowed %}
-                    <button type="button" disabled>Added ({{ d.parent }})</button>
-                {% else %}
-                    <form action="/add_allow?blockedonly={{ '1' if show_only_blocked else '0' }}" method="post" style="display:inline;">
-                        <input type="hidden" name="domain" value="{{ d.domain }}">
-                        <button type="submit">Add to Allow List ({{ d.parent }})</button>
-                    </form>
+            <td>{{ d.parent }}</td>
+            <td>{{ 'Yes' if d.allowed else 'No' }}</td>
+            <td>
+                {% if not d.allowed %}
+                <form action="{{ url_for('index') }}" method="post" style="display:inline;">
+                    <input type="hidden" name="domain" value="{{ d.domain }}">
+                    <button type="submit">Add to Allow List</button>
+                </form>
                 {% endif %}
             </td>
         </tr>
