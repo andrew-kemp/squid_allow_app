@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Squid Blocked Domains</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { border-collapse: collapse; width: 50%; margin: 20px auto; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #eee; }
+        button { padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Blocked Domains</h2>
+    <table>
+        <tr><th>Domain</th><th>Action</th></tr>
+        {% for domain in domains %}
+        <tr>
+            <td>{{ domain }}</td>
+            <td>
+                <form action="/add/{{ domain }}" method="post">
+                    <button type="submit">Add to Allow List</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2" style="text-align:center;">No blocked domains found</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
