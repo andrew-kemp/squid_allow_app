@@ -71,3 +71,32 @@ button:hover {
     .card { max-width: 98vw; padding: 10px; }
     th, td { font-size: 1em; padding: 10px 4px; }
 }
+/* Modal and Spinner */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.18);
+}
+.modal-content {
+    background: #fff;
+    padding: 36px 48px;
+    border-radius: 12px;
+    text-align: center;
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 4px 24px #d3d3e2;
+}
+.spinner {
+    margin: 0 auto 20px auto;
+    width: 48px; height: 48px;
+    border: 5px solid #e3e8ee;
+    border-top: 5px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+}
