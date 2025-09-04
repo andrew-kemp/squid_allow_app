@@ -5,7 +5,6 @@ from publicsuffix2 import get_sld
 
 app = Flask(__name__)
 
-# Paths
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
 
@@ -19,7 +18,6 @@ def get_blocked_domains():
                     domain = parts[6]
                     if domain and not domain.startswith("http:") and not domain.startswith("https:"):
                         domains.add(domain)
-    # Clean up domains (remove ports, www, etc)
     clean_domains = set()
     for domain in domains:
         if ':' in domain:
@@ -31,7 +29,6 @@ def get_blocked_domains():
 
 def get_parent_domain(domain):
     parent = get_sld(domain)
-    # Only return parent if it's different from the original
     return f".{parent}" if parent and parent != domain else f".{domain}"
 
 def get_allow_list():
@@ -47,21 +44,22 @@ def add_to_allow_list(domain):
         with open(ALLOW_LIST_FILE, "a") as f:
             f.write(entry + "\n")
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
     blocked_domains = get_blocked_domains()
     allow_list = get_allow_list()
 
-    # Map domains to their parent domain for allow check
     display_domains = []
     for domain in blocked_domains:
         parent = get_parent_domain(domain)
         allowed = parent in allow_list
-        display_domains.append({
-            "domain": domain,
-            "parent": parent,
-            "allowed": allowed
-        })
+        # Only show domains NOT already allowed
+        if not allowed:
+            display_domains.append({
+                "domain": domain,
+                "parent": parent,
+                "allowed": allowed
+            })
 
     return render_template("index.html", domains=display_domains)
 
