@@ -8,14 +8,19 @@
         th { background-color: #f2f2f2; }
         button[disabled] { background: #ccc; color: #666; }
         .center { text-align: center; }
+        .actions { margin: 20px auto; text-align: center; }
     </style>
 </head>
 <body>
     <h2 class="center">Squid Blocked Domains</h2>
-    <form action="/restart_squid" method="post" class="center">
-        <button type="submit">Restart Squid</button>
-    </form>
-    <br>
+    <div class="actions">
+        <form action="/restart_squid" method="post" style="display:inline;">
+            <button type="submit">Restart Squid</button>
+        </form>
+        <form action="/" method="get" style="display:inline;">
+            <button type="submit">Refresh List</button>
+        </form>
+    </div>
     <table>
         <tr>
             <th>Domain</th>
@@ -25,14 +30,10 @@
         <tr>
             <td>{{ d.domain }}</td>
             <td class="center">
-                {% if d.allowed %}
-                    <button type="button" disabled>Added ({{ d.parent }})</button>
-                {% else %}
-                    <form action="/add_allow" method="post" style="display:inline;">
-                        <input type="hidden" name="domain" value="{{ d.domain }}">
-                        <button type="submit">Add to Allow List ({{ d.parent }})</button>
-                    </form>
-                {% endif %}
+                <form action="/add_allow" method="post" style="display:inline;">
+                    <input type="hidden" name="domain" value="{{ d.domain }}">
+                    <button type="submit">Add to Allow List ({{ d.parent }})</button>
+                </form>
             </td>
         </tr>
         {% endfor %}
