@@ -5,7 +5,6 @@ from publicsuffix2 import get_sld
 
 app = Flask(__name__)
 
-# Update these paths as needed for your system!
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
 
@@ -19,7 +18,7 @@ def get_blocked_domains():
                     domain = parts[6]
                     if domain and not domain.startswith("http:") and not domain.startswith("https:"):
                         domains.add(domain)
-    # Clean up domains (remove ports, www, etc)
+    # Clean up domains
     clean_domains = set()
     for domain in domains:
         if ':' in domain:
@@ -31,7 +30,6 @@ def get_blocked_domains():
 
 def get_parent_domain(domain):
     parent = get_sld(domain)
-    # Only return parent if it's different from the original
     return f".{parent}" if parent and parent != domain else f".{domain}"
 
 def get_allow_list():
@@ -51,31 +49,38 @@ def add_to_allow_list(domain):
 def index():
     blocked_domains = get_blocked_domains()
     allow_list = get_allow_list()
+    # Check for filter mode
+    show_only_blocked = request.args.get("blockedonly", "0") == "1"
 
-    # Map domains to their parent domain for allow check
     display_domains = []
     for domain in blocked_domains:
         parent = get_parent_domain(domain)
         allowed = parent in allow_list
+        if show_only_blocked and allowed:
+            continue  # Skip allowed domains
         display_domains.append({
             "domain": domain,
             "parent": parent,
             "allowed": allowed
         })
 
-    return render_template("index.html", domains=display_domains)
+    return render_template("index.html", domains=display_domains, show_only_blocked=show_only_blocked)
 
 @app.route("/add_allow", methods=["POST"])
 def add_allow():
     domain = request.form.get("domain")
     if domain:
         add_to_allow_list(domain)
-    return redirect(url_for("index"))
+    # Retain filter mode after add
+    blockedonly = request.args.get("blockedonly", "0")
+    return redirect(url_for("index", blockedonly=blockedonly))
 
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
     subprocess.run(["sudo", "systemctl", "restart", "squid"])
-    return redirect(url_for("index"))
+    # Retain filter mode after restart
+    blockedonly = request.args.get("blockedonly", "0")
+    return redirect(url_for("index", blockedonly=blockedonly))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
