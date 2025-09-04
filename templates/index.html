@@ -8,14 +8,26 @@
         th { background-color: #f2f2f2; }
         button[disabled] { background: #ccc; color: #666; }
         .center { text-align: center; }
+        .controls { margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
     <h2 class="center">Squid Blocked Domains</h2>
-    <form action="/restart_squid" method="post" class="center">
-        <button type="submit">Restart Squid</button>
-    </form>
-    <br>
+    <div class="controls">
+        <form action="/restart_squid" method="post" style="display:inline;">
+            <button type="submit">Restart Squid</button>
+        </form>
+        {% if not show_only_blocked %}
+            <form action="/" method="get" style="display:inline;">
+                <input type="hidden" name="blockedonly" value="1">
+                <button type="submit">Refresh (Hide Added)</button>
+            </form>
+        {% else %}
+            <form action="/" method="get" style="display:inline;">
+                <button type="submit">Show All</button>
+            </form>
+        {% endif %}
+    </div>
     <table>
         <tr>
             <th>Domain</th>
@@ -28,7 +40,7 @@
                 {% if d.allowed %}
                     <button type="button" disabled>Added ({{ d.parent }})</button>
                 {% else %}
-                    <form action="/add_allow" method="post" style="display:inline;">
+                    <form action="/add_allow?blockedonly={{ '1' if show_only_blocked else '0' }}" method="post" style="display:inline;">
                         <input type="hidden" name="domain" value="{{ d.domain }}">
                         <button type="submit">Add to Allow List ({{ d.parent }})</button>
                     </form>
