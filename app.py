@@ -76,7 +76,7 @@ def add_allow():
 def restart_squid():
     try:
         result = subprocess.run(
-            ["systemctl", "restart", "squid"],
+            ["/usr/bin/systemctl", "restart", "squid"],
             capture_output=True, text=True
         )
         if result.returncode != 0:
