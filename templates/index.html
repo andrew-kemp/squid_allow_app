@@ -14,6 +14,9 @@
             <form action="/" method="get" style="display:inline;">
                 <button type="submit">Refresh List</button>
             </form>
+            <form action="/allowed" method="get" style="display:inline;">
+                <button type="submit">View Allowed Sites</button>
+            </form>
         </div>
         <table>
             <tr>
@@ -41,7 +44,6 @@
         <p>Restarting Squid, please wait...</p>
       </div>
     </div>
-
     <script>
     document.addEventListener("DOMContentLoaded", function() {
       var restartForm = document.getElementById('restartForm');
