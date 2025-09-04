@@ -8,7 +8,7 @@
     <div class="card">
         <h2>Squid Blocked Domains</h2>
         <div class="actions">
-            <form action="/restart_squid" method="post" style="display:inline;">
+            <form id="restartForm" action="/restart_squid" method="post" style="display:inline;">
                 <button type="submit">Restart Squid</button>
             </form>
             <form action="/" method="get" style="display:inline;">
@@ -33,5 +33,24 @@
             {% endfor %}
         </table>
     </div>
+
+    <!-- Please Wait Modal -->
+    <div id="waitModal" class="modal">
+      <div class="modal-content">
+        <div class="spinner"></div>
+        <p>Restarting Squid, please wait...</p>
+      </div>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var restartForm = document.getElementById('restartForm');
+      if (restartForm) {
+        restartForm.addEventListener("submit", function(e) {
+          document.getElementById("waitModal").style.display = "block";
+        });
+      }
+    });
+    </script>
 </body>
 </html>
