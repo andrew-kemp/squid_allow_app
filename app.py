@@ -73,12 +73,21 @@ def add_allow():
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
     try:
+        # Restart Squid
         result = subprocess.run(
             ["/usr/bin/systemctl", "restart", "squid"],
             capture_output=True, text=True
         )
+        # Check if restart succeeded
         if result.returncode != 0:
             return f"Error restarting squid:<br><pre>{result.stderr}</pre>", 500
+        # Validate Squid is running
+        status = subprocess.run(
+            ["/usr/bin/systemctl", "is-active", "squid"],
+            capture_output=True, text=True
+        )
+        if status.stdout.strip() != "active":
+            return f"Squid did not start successfully.<br><pre>{status.stdout} {status.stderr}</pre>", 500
         return redirect(url_for("index"))
     except Exception as e:
         return f"Exception: {e}", 500
