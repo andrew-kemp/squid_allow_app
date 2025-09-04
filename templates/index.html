@@ -1,31 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Squid Blocked Domains</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        table { border-collapse: collapse; width: 50%; margin: 20px auto; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background: #eee; }
-        button { padding: 5px 10px; }
+        table { border-collapse: collapse; width: 60%; margin: auto; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        button[disabled] { background: #ccc; color: #666; }
+        .center { text-align: center; }
     </style>
 </head>
 <body>
-    <h2 style="text-align:center;">Blocked Domains</h2>
+    <h2 class="center">Squid Blocked Domains</h2>
+    <form action="/restart_squid" method="post" class="center">
+        <button type="submit">Restart Squid</button>
+    </form>
+    <br>
     <table>
-        <tr><th>Domain</th><th>Action</th></tr>
-        {% for domain in domains %}
         <tr>
-            <td>{{ domain }}</td>
-            <td>
-                <form action="/add/{{ domain }}" method="post">
-                    <button type="submit">Add to Allow List</button>
-                </form>
+            <th>Domain</th>
+            <th>Action</th>
+        </tr>
+        {% for d in domains %}
+        <tr>
+            <td>{{ d.domain }}</td>
+            <td class="center">
+                {% if d.allowed %}
+                    <button type="button" disabled>Added ({{ d.parent }})</button>
+                {% else %}
+                    <form action="/add_allow" method="post" style="display:inline;">
+                        <input type="hidden" name="domain" value="{{ d.domain }}">
+                        <button type="submit">Add to Allow List ({{ d.parent }})</button>
+                    </form>
+                {% endif %}
             </td>
         </tr>
-        {% else %}
-        <tr><td colspan="2" style="text-align:center;">No blocked domains found</td></tr>
         {% endfor %}
     </table>
 </body>
