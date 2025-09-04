@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Allowed Sites</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="card">
+        <h2>Allowed Sites</h2>
+        <div class="actions">
+            <form action="/" method="get" style="display:inline;">
+                <button type="submit">Back to Blocked Domains</button>
+            </form>
+        </div>
+        <table>
+            <tr>
+                <th>Allowed Domain</th>
+                <th>Remove</th>
+            </tr>
+            {% for entry in allow_list %}
+            <tr>
+                <td>{{ entry }}</td>
+                <td class="center">
+                    <form action="/remove_allow" method="post" style="display:inline;">
+                        <input type="hidden" name="entry" value="{{ entry }}">
+                        <button type="submit" class="trash-btn" title="Remove">
+                            <span class="trash-icon">&#128465;</span>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>
