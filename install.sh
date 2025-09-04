@@ -6,9 +6,10 @@ APP_DIR="/home/$USER/squid_allow_app"
 VENV_DIR="$APP_DIR/venv"
 
 echo "Installing dependencies..."
+sudo apt-get update
 sudo apt-get install -y python3 python3-pip python3-venv git nginx squid openssl
 
-echo "Cloning your Flask app..."
+echo "Cloning Flask app..."
 if [ ! -d "$APP_DIR" ]; then
     git clone https://github.com/andrew-kemp/squid_allow_app.git "$APP_DIR"
 fi
@@ -23,13 +24,15 @@ pip install -r requirements.txt
 
 echo "Configuring Squid to block all and use allow list..."
 sudo touch /etc/squid/allowed_paw.acl
-sudo chmod o+w /etc/squid/allowed_paw.acl
+sudo chmod 666 /etc/squid/allowed_paw.acl
 
-# Insert allow rules before any deny all!
-sudo sed -i '/http_access deny all/i \
+# Prevent duplicate ACL/rules in squid.conf
+if ! sudo grep -q 'acl paw_access dstdomain "/etc/squid/allowed_paw.acl"' /etc/squid/squid.conf; then
+    sudo sed -i '/http_access deny all/i \
 # Squid allow list management\n\
 acl paw_access dstdomain "/etc/squid/allowed_paw.acl"\n\
 http_access allow paw_access\n' /etc/squid/squid.conf
+fi
 
 sudo systemctl restart squid
 
