@@ -5,7 +5,7 @@ from publicsuffix2 import get_sld
 
 app = Flask(__name__)
 
-# Update these paths as needed for your system!
+# Paths
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
 
@@ -74,8 +74,16 @@ def add_allow():
 
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
-    subprocess.run(["sudo", "systemctl", "restart", "squid"])
-    return redirect(url_for("index"))
+    try:
+        result = subprocess.run(
+            ["systemctl", "restart", "squid"],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            return f"Error restarting squid:<br><pre>{result.stderr}</pre>", 500
+        return redirect(url_for("index"))
+    except Exception as e:
+        return f"Exception: {e}", 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
