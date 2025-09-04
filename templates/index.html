@@ -2,17 +2,10 @@
 <html>
 <head>
     <title>Squid Blocked Domains</title>
-    <style>
-        table { border-collapse: collapse; width: 60%; margin: auto; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        button[disabled] { background: #ccc; color: #666; }
-        .center { text-align: center; }
-        .actions { margin: 20px auto; text-align: center; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h2 class="center">Squid Blocked Domains</h2>
+    <h2>Squid Blocked Domains</h2>
     <div class="actions">
         <form action="/restart_squid" method="post" style="display:inline;">
             <button type="submit">Restart Squid</button>
