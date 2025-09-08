@@ -1,4 +1,4 @@
-# Squid Allow App
+# Squid PAW Manager
 
 A web-based GUI for Squid Proxy, designed specifically for controlling and managing access for Privileged Access Workstations (PAWs). This tool provides an intuitive interface for managing allow-lists, enabling organizations to tightly control internet access for privileged endpoints.
 
@@ -43,7 +43,7 @@ sudo bash install.sh
 The installer will:
 
 - Install all required services and dependencies (including Squid)
-- Set up the Squid Allow App web interface
+- Set up the Squid PAW Manager web interface
 - Configure Squid for PAW access management
 - Create and enable the necessary system services
 
@@ -69,7 +69,7 @@ sudo bash update.sh
 
 This will:
 
-- Fetch the latest version of Squid Allow App and its components
+- Fetch the latest version of Squid PAW Manager and its components
 - Update files as needed
 - Restart the service so changes take effect
 
