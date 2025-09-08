@@ -22,6 +22,10 @@ source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
 pip install -r requirements.txt
 
+echo "Copying base allow list..."
+sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
+sudo chmod 666 /etc/squid/allowed_paw.acl
+
 echo "Configuring Squid to block all and use allow list..."
 sudo touch /etc/squid/allowed_paw.acl
 sudo chmod 666 /etc/squid/allowed_paw.acl
