@@ -26,19 +26,99 @@ echo "Copying base allow list..."
 sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
 sudo chmod 666 /etc/squid/allowed_paw.acl
 
-echo "Configuring Squid to block all and use allow list..."
-sudo touch /etc/squid/allowed_paw.acl
-sudo chmod 666 /etc/squid/allowed_paw.acl
+# ==== BEGIN: Secure Squid Config Generation ====
+echo ""
+echo "==== Squid Secure Network/Host Configuration ===="
 
-# Prevent duplicate ACL/rules in squid.conf
-if ! sudo grep -q 'acl paw_access dstdomain "/etc/squid/allowed_paw.acl"' /etc/squid/squid.conf; then
-    sudo sed -i '/http_access deny all/i \
-# Squid allow list management\n\
-acl paw_access dstdomain "/etc/squid/allowed_paw.acl"\n\
-http_access allow paw_access\n' /etc/squid/squid.conf
+read -p "Enter the PAW subnet(s) to allow (comma or space separated, e.g. 10.1.2.0/24,10.2.3.0/24): " PAW_SUBNETS
+PAW_SUBNETS="${PAW_SUBNETS//,/ }"
+
+DEFAULT_IP=$(hostname -I | awk '{print $1}')
+read -p "Enter the internal IP address for this proxy server [${DEFAULT_IP}]: " SQUID_IP
+SQUID_IP=${SQUID_IP:-$DEFAULT_IP}
+
+echo ""
+echo "PAW subnets: $PAW_SUBNETS"
+echo "Proxy IP: $SQUID_IP"
+
+read -p "Proceed with these Squid settings? [y/N]: " CONFIRM
+if [[ ! $CONFIRM =~ ^[Yy]$ ]]; then
+    echo "Aborting Squid configuration."
+    exit 1
+fi
+
+# Backup old squid.conf
+if [ -f /etc/squid/squid.conf ]; then
+    sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.bak.$(date +%F_%T)
+    echo "Existing squid.conf backed up."
+fi
+
+sudo tee /etc/squid/squid.conf > /dev/null <<EOF
+# Squid Proxy for PAW/AVD - Minimal Hardened Configuration
+
+http_port $SQUID_IP:3128
+visible_hostname paw-avd-proxy
+
+# Allow only specified PAW subnets
+acl avd_paws src $PAW_SUBNETS
+
+# Allow-list of destination domains (managed separately)
+acl allowed_domains dstdomain "/etc/squid/allowed_paw.acl"
+
+# Only allow HTTP and HTTPS ports
+acl Safe_ports port 80
+acl SSL_ports port 443
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+
+# Allow access only from PAW subnets to allowed domains
+http_access allow avd_paws allowed_domains
+
+# Deny all other requests
+http_access deny all
+
+# Disable all caching (optional for PAW)
+cache deny all
+
+# Hide client details and Squid version
+forwarded_for delete
+via off
+
+# Limit request and reply sizes
+request_body_max_size 10 MB
+reply_body_max_size 50 MB
+
+# DNS hardening
+dns_v4_first on
+
+# Logging
+access_log /var/log/squid/access.log
+cache_log /var/log/squid/cache.log
+logfile_rotate 14
+
+# Resource tuning
+cache_mem 64 MB
+maximum_object_size_in_memory 128 KB
+
+# End of config
+EOF
+
+echo "New /etc/squid/squid.conf written."
+
+if [ ! -f /etc/squid/allowed_paw.acl ]; then
+    echo "---------------------------------------------"
+    echo "WARNING: /etc/squid/allowed_paw.acl does NOT exist."
+    echo "Please create this file with one domain per line, e.g.:"
+    echo "  .windowsupdate.com"
+    echo "  .microsoft.com"
+    echo "  .azure.com"
+    echo "---------------------------------------------"
 fi
 
 sudo systemctl restart squid
+
+# ==== END: Secure Squid Config Generation ====
 
 echo "Setting up sudoers for squid restart..."
 SUDOERS_LINE="$USER ALL=NOPASSWD: /bin/systemctl restart squid"
@@ -96,4 +176,4 @@ sudo systemctl enable squid_allow_app
 sudo systemctl start squid_allow_app
 
 echo "All setup complete!"
-echo "Access your app at https://$(hostname -I | awk '{print $1}')/"
+echo "Access your app at https://$SQUID_IP/"
