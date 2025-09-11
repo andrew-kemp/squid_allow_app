@@ -1,9 +1,10 @@
 import os
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from publicsuffix2 import get_sld
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET', 'supersecretkey')  # Set a secure key!
 
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
@@ -68,13 +69,18 @@ def index():
                 "allowed": allowed
             })
 
-    return render_template("index.html", domains=display_domains)
+    return render_template(
+        "index.html",
+        domains=display_domains,
+        changes_pending=session.get("changes_pending", False)
+    )
 
 @app.route("/add_allow", methods=["POST"])
 def add_allow():
     domain = request.form.get("domain")
     if domain:
         add_to_allow_list(domain)
+        session["changes_pending"] = True
     return redirect(url_for("index"))
 
 @app.route("/remove_allow", methods=["POST"])
@@ -82,12 +88,17 @@ def remove_allow():
     entry = request.form.get("entry")
     if entry:
         remove_from_allow_list(entry)
+        session["changes_pending"] = True
     return redirect(url_for("allowed"))
 
 @app.route("/allowed", methods=["GET"])
 def allowed():
     allow_list = get_allow_list()
-    return render_template("allowed.html", allow_list=allow_list)
+    return render_template(
+        "allowed.html",
+        allow_list=allow_list,
+        changes_pending=session.get("changes_pending", False)
+    )
 
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
@@ -104,9 +115,15 @@ def restart_squid():
         )
         if status.stdout.strip() != "active":
             return f"Squid did not start successfully.<br><pre>{status.stdout} {status.stderr}</pre>", 500
+        session.pop("changes_pending", None)
         return redirect(url_for("index"))
     except Exception as e:
         return f"Exception: {e}", 500
+
+@app.route("/clear_changes", methods=["POST"])
+def clear_changes():
+    session.pop("changes_pending", None)
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
