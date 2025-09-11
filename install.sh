@@ -105,6 +105,8 @@ maximum_object_size_in_memory 128 KB
 EOF
 
 echo "New /etc/squid/squid.conf written."
+# Deploy custom Squid error page
+sudo cp ERR_ACCESS_DENIED.html /usr/share/squid/errors/English/ERR_ACCESS_DENIED
 
 if [ ! -f /etc/squid/allowed_paw.acl ]; then
     echo "---------------------------------------------"
