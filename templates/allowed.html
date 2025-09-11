@@ -1,46 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Allowed Sites</title>
+    <title>Squid Allowed Domains</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     {% if changes_pending %}
-    <div class="banner-alert" style="background: #fffbe6; border-bottom: 1px solid #fde4a0; color: #ad8b00; padding: 18px 16px; text-align: center; font-weight: 600;">
-        <div style="font-size: 1.15rem; margin-bottom: 12px;">
+    <div class="banner-alert">
+        <div>
             Changes detected: Please restart the Squid service to apply updates.
         </div>
-        <form method="post" action="{{ url_for('restart_squid') }}">
-            <button type="submit" class="btn btn-primary" style="margin-top: 2px;">Restart Squid</button>
-        </form>
     </div>
     {% endif %}
     <div class="card">
-        <h2>Allowed Sites</h2>
-        <div class="actions">
-            <form action="/" method="get" style="display:inline;">
-                <button type="submit" class="btn btn-primary">Back to Blocked Domains</button>
-            </form>
-        </div>
-        <table>
-            <tr>
-                <th>Allowed Domain</th>
-                <th>Remove</th>
-            </tr>
-            {% for entry in allow_list %}
-            <tr>
-                <td>{{ entry }}</td>
-                <td class="center">
-                    <form action="/remove_allow" method="post" style="display:inline;">
-                        <input type="hidden" name="entry" value="{{ entry }}">
-                        <button type="submit" class="trash-btn" title="Remove">
-                            <span class="trash-icon">&#128465;</span>
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+        <h2>Squid Allowed Domains</h2>
+        <form method="post" action="{{ url_for('bulk_action') }}">
+            {% include "_actions_bar.html" %}
+            <table>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Allowed Domain</th>
+                    <th>Action</th>
+                </tr>
+                {% for domain in allow_list %}
+                <tr>
+                    <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
+                    <td>{{ domain }}</td>
+                    <td>
+                        <form action="{{ url_for('remove_allow') }}" method="post" style="display:inline;">
+                            <input type="hidden" name="entry" value="{{ domain }}">
+                            <button type="submit" class="btn btn-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </form>
     </div>
+    <script src="{{ url_for('static', filename='bulk_buttons.js') }}"></script>
 </body>
 </html>
