@@ -1,46 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Squid Blocked Domains</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+<div class="center-actions">
+    <button type="submit" name="action" value="allow" class="btn btn-primary">Allow Selected</button>
+    <button type="submit" name="action" value="remove" class="btn btn-danger">Remove Selected</button>
+    <a href="{{ url_for('allowed') }}" class="btn btn-secondary{% if page == 'allowed' %} current-page{% endif %}">Allowed</a>
+    <a href="{{ url_for('view_removed') }}" class="btn btn-secondary{% if page == 'removed' %} current-page{% endif %}">Removed</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary{% if page == 'blocked' %} current-page{% endif %}">Blocked</a>
     {% if changes_pending %}
-    <div class="banner-alert">
-        <div>
-            Changes detected: Please restart the Squid service to apply updates.
-        </div>
-    </div>
-    {% endif %}
-    <div class="card">
-        <h2>Squid Blocked Domains</h2>
-        <form method="post" action="{{ url_for('bulk_action') }}">
-            {% include "_actions_bar.html" %}
-            <table>
-                <tr>
-                    <th><input type="checkbox" id="selectAll"></th>
-                    <th>Domain</th>
-                    <th style="text-align: center;">Action</th>
-                </tr>
-                {% for d in domains %}
-                <tr>
-                    <td><input type="checkbox" name="selected_domains" value="{{ d.domain }}"></td>
-                    <td>{{ d.domain }}</td>
-                    <td style="text-align: center;">
-                        <form action="{{ url_for('add_allow') }}" method="post" style="display:inline;">
-                            <input type="hidden" name="domain" value="{{ d.domain }}">
-                            <button type="submit" class="btn btn-primary">Allow</button>
-                        </form>
-                        <form action="{{ url_for('remove_blocked') }}" method="post" style="display:inline;">
-                            <input type="hidden" name="domain" value="{{ d.domain }}">
-                            <button type="submit" class="btn btn-danger">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
+        <form action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-warning">Restart Squid</button>
         </form>
-    </div>
-    <script src="{{ url_for('static', filename='bulk_buttons.js') }}"></script>
-</body>
-</html>
+        <form action="{{ url_for('clear_changes') }}" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-secondary">Clear Changes</button>
+        </form>
+    {% endif %}
+</div>
