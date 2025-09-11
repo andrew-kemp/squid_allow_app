@@ -1,36 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Removed Domains</title>
+    <title>Squid Removed Domains</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    {% if changes_pending %}
+    <div class="banner-alert">
+        <div>
+            Changes detected: Please restart the Squid service to apply updates.
+        </div>
+    </div>
+    {% endif %}
     <div class="card">
-        <h2>Removed (Hidden) Domains</h2>
+        <h2>Squid Removed Domains</h2>
         <form method="post" action="{{ url_for('restore_domains') }}">
-            <button type="submit" name="action" value="restore" class="btn btn-primary">Restore Selected</button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Blocked Domains</a>
+            {% include "_actions_bar.html" %}
             <table>
                 <tr>
-                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-                    <th>Domain</th>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>Removed Domain</th>
+                    <th>Action</th>
                 </tr>
                 {% for domain in hidden_domains %}
                 <tr>
                     <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
                     <td>{{ domain }}</td>
+                    <td>
+                        <!-- Optionally: Per-row restore button if you want -->
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
         </form>
     </div>
-    <script>
-    function toggleAll(source) {
-        checkboxes = document.getElementsByName('selected_domains');
-        for(var i=0, n=checkboxes.length; i<n; i++) {
-            checkboxes[i].checked = source.checked;
-        }
-    }
-    </script>
+    <script src="{{ url_for('static', filename='bulk_buttons.js') }}"></script>
 </body>
 </html>
