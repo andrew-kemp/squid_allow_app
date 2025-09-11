@@ -1,6 +1,6 @@
 import os
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from publicsuffix2 import get_sld
 
 app = Flask(__name__)
@@ -78,6 +78,12 @@ def remove_from_hidden_list(domain_or_entry):
             for item in sorted(current, key=lambda d: d.lstrip('.').lower()):
                 f.write(item + "\n")
 
+def mark_changes_pending():
+    session["changes_pending"] = True
+
+def clear_changes_pending():
+    session.pop("changes_pending", None)
+
 @app.route("/", methods=["GET"])
 def index():
     blocked_domains = get_blocked_domains()
@@ -100,7 +106,8 @@ def index():
     return render_template(
         "index.html",
         domains=display_domains,
-        changes_pending=session.get("changes_pending", False)
+        changes_pending=session.get("changes_pending", False),
+        page='blocked'
     )
 
 @app.route("/add_allow", methods=["POST"])
@@ -108,7 +115,7 @@ def add_allow():
     domain = request.form.get("domain")
     if domain:
         add_to_allow_list(domain)
-        session["changes_pending"] = True
+        mark_changes_pending()
     return redirect(url_for("index"))
 
 @app.route("/remove_blocked", methods=["POST"])
@@ -116,26 +123,46 @@ def remove_blocked():
     domain = request.form.get("domain")
     if domain:
         add_to_hidden_list(domain)
-        session["changes_pending"] = True
+        mark_changes_pending()
     return redirect(url_for("index"))
 
 @app.route("/bulk_action", methods=["POST"])
 def bulk_action():
     action = request.form.get('action')
     selected = request.form.getlist('selected_domains')
+    # Determine from which page the request came for proper redirect
+    referrer = request.referrer or url_for('index')
+    if 'allowed' in referrer:
+        current_page = 'allowed'
+    elif 'removed' in referrer:
+        current_page = 'removed'
+    else:
+        current_page = 'blocked'
     if not selected:
-        return redirect(url_for('index'))
+        return redirect(referrer)
 
     if action == 'allow':
         for domain in selected:
             add_to_allow_list(domain)
-        session["changes_pending"] = True
+        mark_changes_pending()
+        return redirect(url_for("allowed"))
     elif action == 'remove':
-        for domain in selected:
-            add_to_hidden_list(domain)
-        session["changes_pending"] = True
+        if current_page == 'allowed':
+            for domain in selected:
+                remove_from_allow_list(domain)
+            mark_changes_pending()
+            return redirect(url_for("allowed"))
+        elif current_page == 'removed':
+            for domain in selected:
+                remove_from_hidden_list(domain)
+            return redirect(url_for("view_removed"))
+        else:  # blocked
+            for domain in selected:
+                add_to_hidden_list(domain)
+            mark_changes_pending()
+            return redirect(url_for("index"))
 
-    return redirect(url_for('index'))
+    return redirect(referrer)
 
 @app.route("/allowed", methods=["GET"])
 def allowed():
@@ -144,7 +171,8 @@ def allowed():
     return render_template(
         "allowed.html",
         allow_list=allow_list,
-        changes_pending=session.get("changes_pending", False)
+        changes_pending=session.get("changes_pending", False),
+        page='allowed'
     )
 
 @app.route("/remove_allow", methods=["POST"])
@@ -152,13 +180,18 @@ def remove_allow():
     entry = request.form.get("entry")
     if entry:
         remove_from_allow_list(entry)
-        session["changes_pending"] = True
+        mark_changes_pending()
     return redirect(url_for("allowed"))
 
 @app.route("/view_removed", methods=["GET"])
 def view_removed():
     hidden_domains = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
-    return render_template("removed.html", hidden_domains=hidden_domains)
+    return render_template(
+        "removed.html",
+        hidden_domains=hidden_domains,
+        changes_pending=session.get("changes_pending", False),
+        page='removed'
+    )
 
 @app.route("/restore_domains", methods=["POST"])
 def restore_domains():
@@ -172,6 +205,23 @@ def restore_domains():
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
     try:
+        # For AJAX support: show progress spinner
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            result = subprocess.run(
+                ["/usr/bin/systemctl", "restart", "squid"],
+                capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                return jsonify({"status": "error", "message": result.stderr}), 500
+            status = subprocess.run(
+                ["/usr/bin/systemctl", "is-active", "squid"],
+                capture_output=True, text=True
+            )
+            if status.stdout.strip() != "active":
+                return jsonify({"status": "error", "message": status.stdout + status.stderr}), 500
+            clear_changes_pending()
+            return jsonify({"status": "ok"})
+        # Non-AJAX fallback
         result = subprocess.run(
             ["/usr/bin/systemctl", "restart", "squid"],
             capture_output=True, text=True
@@ -184,14 +234,14 @@ def restart_squid():
         )
         if status.stdout.strip() != "active":
             return f"Squid did not start successfully.<br><pre>{status.stdout} {status.stderr}</pre>", 500
-        session.pop("changes_pending", None)
-        return redirect(url_for("index"))
+        clear_changes_pending()
+        return redirect(request.referrer or url_for("index"))
     except Exception as e:
         return f"Exception: {e}", 500
 
 @app.route("/clear_changes", methods=["POST"])
 def clear_changes():
-    session.pop("changes_pending", None)
+    clear_changes_pending()
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
