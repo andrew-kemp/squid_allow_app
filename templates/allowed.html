@@ -5,6 +5,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    {% if changes_pending %}
+    <form method="post" action="{{ url_for('clear_changes') }}">
+      <div class="banner-alert">
+        Changes detected: Please restart the Squid service to apply updates.
+        <button type="submit">I've restarted Squid</button>
+      </div>
+    </form>
+    {% endif %}
     <div class="card">
         <h2>Allowed Sites</h2>
         <div class="actions">
