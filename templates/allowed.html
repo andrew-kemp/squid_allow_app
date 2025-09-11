@@ -6,18 +6,18 @@
 </head>
 <body>
     {% if changes_pending %}
-    <form method="post" action="{{ url_for('clear_changes') }}">
-      <div class="banner-alert">
-        Changes detected: Please restart the Squid service to apply updates.
-        <button type="submit">I've restarted Squid</button>
-      </div>
-    </form>
+    <div class="banner-alert" style="background: #fffbe6; border-bottom: 1px solid #fde4a0; color: #ad8b00; padding: 18px 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 600;">
+        <span>Changes detected: Please restart the Squid service to apply updates.</span>
+        <form method="post" action="{{ url_for('restart_squid') }}" style="margin: 0;">
+            <button type="submit" class="btn btn-primary" style="margin-left: 12px;">Restart Squid</button>
+        </form>
+    </div>
     {% endif %}
     <div class="card">
         <h2>Allowed Sites</h2>
         <div class="actions">
             <form action="/" method="get" style="display:inline;">
-                <button type="submit">Back to Blocked Domains</button>
+                <button type="submit" class="btn btn-primary">Back to Blocked Domains</button>
             </form>
         </div>
         <table>
