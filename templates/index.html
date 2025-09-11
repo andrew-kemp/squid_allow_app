@@ -1,24 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Squid Blocked Domains</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="card">
-        <h2>Squid Blocked Domains</h2>
-        <div class="actions">
-            <form id="restartForm" action="/restart_squid" method="post" style="display:inline;">
-                <button type="submit">Restart Squid</button>
+{% extends "base.html" %}
+{% block title %}Squid Blocked Domains{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title">Squid Blocked Domains</h2>
+        <div class="actions mb-3">
+            <form id="restartForm" action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-warning">Restart Squid</button>
             </form>
-            <form action="/" method="get" style="display:inline;">
-                <button type="submit">Refresh List</button>
+            <form action="{{ url_for('index') }}" method="get" style="display:inline;">
+                <button type="submit" class="btn btn-secondary">Refresh List</button>
             </form>
-            <form action="/allowed" method="get" style="display:inline;">
-                <button type="submit">View Allowed Sites</button>
+            <form action="{{ url_for('allowed') }}" method="get" style="display:inline;">
+                <button type="submit" class="btn btn-info">View Allowed Sites</button>
             </form>
         </div>
-        <table>
+        <table class="table table-striped">
             <tr>
                 <th>Domain</th>
                 <th>Action</th>
@@ -27,32 +25,32 @@
             <tr>
                 <td>{{ d.domain }}</td>
                 <td>
-                    <form action="/add_allow" method="post" style="display:inline;">
+                    <form action="{{ url_for('add_allow') }}" method="post" style="display:inline;">
                         <input type="hidden" name="domain" value="{{ d.domain }}">
-                        <button type="submit">Add to Allow List ({{ d.parent }})</button>
+                        <button type="submit" class="btn btn-success btn-sm">Add to Allow List ({{ d.parent }})</button>
                     </form>
                 </td>
             </tr>
             {% endfor %}
         </table>
     </div>
+</div>
 
-    <!-- Please Wait Modal -->
-    <div id="waitModal" class="modal">
-      <div class="modal-content">
-        <div class="spinner"></div>
-        <p>Restarting Squid, please wait...</p>
-      </div>
-    </div>
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      var restartForm = document.getElementById('restartForm');
-      if (restartForm) {
-        restartForm.addEventListener("submit", function(e) {
-          document.getElementById("waitModal").style.display = "block";
-        });
-      }
+<!-- Please Wait Modal -->
+<div id="waitModal" class="modal" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.85);text-align:center;">
+  <div class="modal-content" style="margin-top:20vh;">
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+    <p style="margin-top:16px;">Restarting Squid, please wait...</p>
+  </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var restartForm = document.getElementById('restartForm');
+  if (restartForm) {
+    restartForm.addEventListener("submit", function(e) {
+      document.getElementById("waitModal").style.display = "block";
     });
-    </script>
-</body>
-</html>
+  }
+});
+</script>
+{% endblock %}
