@@ -26,7 +26,8 @@ def get_blocked_domains():
         if domain.startswith("www."):
             domain = domain[4:]
         clean_domains.add(domain)
-    return sorted(clean_domains)
+    # Sort alphabetically
+    return sorted(clean_domains, key=lambda d: d.lower())
 
 def get_parent_domain(domain):
     parent = get_sld(domain)
@@ -50,7 +51,7 @@ def remove_from_allow_list(entry):
     if entry in current:
         current.remove(entry)
         with open(ALLOW_LIST_FILE, "w") as f:
-            for item in sorted(current):
+            for item in sorted(current, key=lambda d: d.lstrip('.').lower()):
                 f.write(item + "\n")
 
 @app.route("/", methods=["GET"])
@@ -68,6 +69,9 @@ def index():
                 "parent": parent,
                 "allowed": allowed
             })
+
+    # Sort blocked domains alphabetically by 'domain'
+    display_domains = sorted(display_domains, key=lambda d: d["domain"].lower())
 
     return render_template(
         "index.html",
@@ -94,6 +98,8 @@ def remove_allow():
 @app.route("/allowed", methods=["GET"])
 def allowed():
     allow_list = get_allow_list()
+    # Sort allowed list alphabetically, ignoring leading dot
+    allow_list = sorted(allow_list, key=lambda d: d.lstrip('.').lower())
     return render_template(
         "allowed.html",
         allow_list=allow_list,
