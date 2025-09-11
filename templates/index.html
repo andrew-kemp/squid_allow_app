@@ -7,26 +7,18 @@
 <body>
     {% if changes_pending %}
     <div class="banner-alert">
-        <div class="banner-alert-message">
+        <div>
             Changes detected: Please restart the Squid service to apply updates.
         </div>
-        <form method="post" action="{{ url_for('restart_squid') }}">
-            <button type="submit" class="btn btn-primary">Restart Squid</button>
-        </form>
     </div>
     {% endif %}
     <div class="card">
         <h2>Squid Blocked Domains</h2>
         <form method="post" action="{{ url_for('bulk_action') }}">
-            <div class="center-actions">
-                <button type="submit" name="action" value="allow" class="btn btn-primary">Allow Selected</button>
-                <button type="submit" name="action" value="remove" class="btn btn-danger">Remove Selected</button>
-                <a href="{{ url_for('view_removed') }}" class="btn btn-secondary">View Removed Domains</a>
-                <a href="{{ url_for('allowed') }}" class="btn btn-secondary">View Allowed Domains</a>
-            </div>
+            {% include "_actions_bar.html" %}
             <table>
                 <tr>
-                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                    <th><input type="checkbox" id="selectAll"></th>
                     <th>Domain</th>
                     <th style="text-align: center;">Action</th>
                 </tr>
@@ -49,13 +41,6 @@
             </table>
         </form>
     </div>
-    <script>
-    function toggleAll(source) {
-        const checkboxes = document.getElementsByName('selected_domains');
-        for(let i=0, n=checkboxes.length; i<n; i++) {
-            checkboxes[i].checked = source.checked;
-        }
-    }
-    </script>
+    <script src="{{ url_for('static', filename='bulk_buttons.js') }}"></script>
 </body>
 </html>
