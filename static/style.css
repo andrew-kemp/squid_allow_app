@@ -115,7 +115,6 @@ button:hover {
 .trash-btn:hover .trash-icon {
     color: #b91c1c;
 }
-
 /* --- Additions for unified actions bar and disabled states --- */
 .center-actions {
     display: flex;
