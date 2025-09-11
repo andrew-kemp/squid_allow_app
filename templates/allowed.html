@@ -6,10 +6,12 @@
 </head>
 <body>
     {% if changes_pending %}
-    <div class="banner-alert" style="background: #fffbe6; border-bottom: 1px solid #fde4a0; color: #ad8b00; padding: 18px 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 600;">
-        <span>Changes detected: Please restart the Squid service to apply updates.</span>
-        <form method="post" action="{{ url_for('restart_squid') }}" style="margin: 0;">
-            <button type="submit" class="btn btn-primary" style="margin-left: 12px;">Restart Squid</button>
+    <div class="banner-alert" style="background: #fffbe6; border-bottom: 1px solid #fde4a0; color: #ad8b00; padding: 18px 16px; text-align: center; font-weight: 600;">
+        <div style="font-size: 1.15rem; margin-bottom: 12px;">
+            Changes detected: Please restart the Squid service to apply updates.
+        </div>
+        <form method="post" action="{{ url_for('restart_squid') }}">
+            <button type="submit" class="btn btn-primary" style="margin-top: 2px;">Restart Squid</button>
         </form>
     </div>
     {% endif %}
