@@ -4,10 +4,11 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from publicsuffix2 import get_sld
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET', 'supersecretkey')  # Set a secure key!
+app.secret_key = os.environ.get('FLASK_SECRET', 'supersecretkey')
 
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
+HIDDEN_LIST_FILE = "/etc/squid/hidden_domains.txt"  # new file for removed/hidden domains
 
 def get_blocked_domains():
     domains = set()
@@ -26,7 +27,6 @@ def get_blocked_domains():
         if domain.startswith("www."):
             domain = domain[4:]
         clean_domains.add(domain)
-    # Sort alphabetically
     return sorted(clean_domains, key=lambda d: d.lower())
 
 def get_parent_domain(domain):
@@ -39,12 +39,20 @@ def get_allow_list():
     with open(ALLOW_LIST_FILE, "r") as f:
         return [line.strip() for line in f if line.strip()]
 
+def get_hidden_list():
+    if not os.path.exists(HIDDEN_LIST_FILE):
+        return []
+    with open(HIDDEN_LIST_FILE, "r") as f:
+        return [line.strip() for line in f if line.strip()]
+
 def add_to_allow_list(domain):
     entry = get_parent_domain(domain)
     current = set(get_allow_list())
     if entry not in current:
         with open(ALLOW_LIST_FILE, "a") as f:
             f.write(entry + "\n")
+    # Also remove from hidden if present
+    remove_from_hidden_list(domain)
 
 def remove_from_allow_list(entry):
     current = set(get_allow_list())
@@ -54,25 +62,41 @@ def remove_from_allow_list(entry):
             for item in sorted(current, key=lambda d: d.lstrip('.').lower()):
                 f.write(item + "\n")
 
+def add_to_hidden_list(domain):
+    entry = get_parent_domain(domain)
+    current = set(get_hidden_list())
+    if entry not in current:
+        with open(HIDDEN_LIST_FILE, "a") as f:
+            f.write(entry + "\n")
+
+def remove_from_hidden_list(domain_or_entry):
+    entry = get_parent_domain(domain_or_entry) if not domain_or_entry.startswith('.') else domain_or_entry
+    current = set(get_hidden_list())
+    if entry in current:
+        current.remove(entry)
+        with open(HIDDEN_LIST_FILE, "w") as f:
+            for item in sorted(current, key=lambda d: d.lstrip('.').lower()):
+                f.write(item + "\n")
+
 @app.route("/", methods=["GET"])
 def index():
     blocked_domains = get_blocked_domains()
     allow_list = set(get_allow_list())
+    hidden_list = set(get_hidden_list())
 
     display_domains = []
     for domain in blocked_domains:
         parent = get_parent_domain(domain)
         allowed = parent in allow_list
-        if not allowed:
+        hidden = parent in hidden_list
+        if not allowed and not hidden:
             display_domains.append({
                 "domain": domain,
                 "parent": parent,
                 "allowed": allowed
             })
 
-    # Sort blocked domains alphabetically by 'domain'
     display_domains = sorted(display_domains, key=lambda d: d["domain"].lower())
-
     return render_template(
         "index.html",
         domains=display_domains,
@@ -87,6 +111,42 @@ def add_allow():
         session["changes_pending"] = True
     return redirect(url_for("index"))
 
+@app.route("/remove_blocked", methods=["POST"])
+def remove_blocked():
+    domain = request.form.get("domain")
+    if domain:
+        add_to_hidden_list(domain)
+        session["changes_pending"] = True
+    return redirect(url_for("index"))
+
+@app.route("/bulk_action", methods=["POST"])
+def bulk_action():
+    action = request.form.get('action')
+    selected = request.form.getlist('selected_domains')
+    if not selected:
+        return redirect(url_for('index'))
+
+    if action == 'allow':
+        for domain in selected:
+            add_to_allow_list(domain)
+        session["changes_pending"] = True
+    elif action == 'remove':
+        for domain in selected:
+            add_to_hidden_list(domain)
+        session["changes_pending"] = True
+
+    return redirect(url_for('index'))
+
+@app.route("/allowed", methods=["GET"])
+def allowed():
+    allow_list = get_allow_list()
+    allow_list = sorted(allow_list, key=lambda d: d.lstrip('.').lower())
+    return render_template(
+        "allowed.html",
+        allow_list=allow_list,
+        changes_pending=session.get("changes_pending", False)
+    )
+
 @app.route("/remove_allow", methods=["POST"])
 def remove_allow():
     entry = request.form.get("entry")
@@ -95,16 +155,19 @@ def remove_allow():
         session["changes_pending"] = True
     return redirect(url_for("allowed"))
 
-@app.route("/allowed", methods=["GET"])
-def allowed():
-    allow_list = get_allow_list()
-    # Sort allowed list alphabetically, ignoring leading dot
-    allow_list = sorted(allow_list, key=lambda d: d.lstrip('.').lower())
-    return render_template(
-        "allowed.html",
-        allow_list=allow_list,
-        changes_pending=session.get("changes_pending", False)
-    )
+@app.route("/view_removed", methods=["GET"])
+def view_removed():
+    hidden_domains = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
+    return render_template("removed.html", hidden_domains=hidden_domains)
+
+@app.route("/restore_domains", methods=["POST"])
+def restore_domains():
+    selected = request.form.getlist('selected_domains')
+    if not selected:
+        return redirect(url_for('view_removed'))
+    for entry in selected:
+        remove_from_hidden_list(entry)
+    return redirect(url_for('view_removed'))
 
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
