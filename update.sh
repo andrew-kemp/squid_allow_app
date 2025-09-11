@@ -23,6 +23,9 @@ pip install -r requirements.txt
 echo "Updating allow list..."
 sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
 sudo chmod 666 /etc/squid/allowed_paw.acl
+# Deploy custom Squid error page
+sudo cp ERR_ACCESS_DENIED.html /usr/share/squid/errors/English/ERR_ACCESS_DENIED
+
 
 # Restart Squid and the app service
 echo "Restarting Squid service..."
