@@ -130,7 +130,6 @@ def remove_blocked():
 def bulk_action():
     action = request.form.get('action')
     selected = request.form.getlist('selected_domains')
-    # Determine from which page the request came for proper redirect
     referrer = request.referrer or url_for('index')
     if 'allowed' in referrer:
         current_page = 'allowed'
@@ -148,13 +147,13 @@ def bulk_action():
         return redirect(url_for("allowed"))
     elif action == 'remove':
         if current_page == 'allowed':
-            for domain in selected:
-                remove_from_allow_list(domain)
+            for entry in selected:
+                remove_from_allow_list(entry)
             mark_changes_pending()
             return redirect(url_for("allowed"))
         elif current_page == 'removed':
-            for domain in selected:
-                remove_from_hidden_list(domain)
+            for entry in selected:
+                remove_from_hidden_list(entry)
             return redirect(url_for("view_removed"))
         else:  # blocked
             for domain in selected:
@@ -167,17 +166,18 @@ def bulk_action():
 @app.route("/allowed", methods=["GET"])
 def allowed():
     allow_list = get_allow_list()
-    allow_list = sorted(allow_list, key=lambda d: d.lstrip('.').lower())
+    # Pass as list of dicts for template compatibility
+    domains = [{"domain": d} for d in sorted(allow_list, key=lambda d: d.lstrip('.').lower())]
     return render_template(
         "allowed.html",
-        allow_list=allow_list,
+        domains=domains,
         changes_pending=session.get("changes_pending", False),
         page='allowed'
     )
 
 @app.route("/remove_allow", methods=["POST"])
 def remove_allow():
-    entry = request.form.get("entry")
+    entry = request.form.get("domain") or request.form.get("entry")
     if entry:
         remove_from_allow_list(entry)
         mark_changes_pending()
@@ -186,9 +186,11 @@ def remove_allow():
 @app.route("/view_removed", methods=["GET"])
 def view_removed():
     hidden_domains = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
+    # Pass as list of dicts for template compatibility
+    domains = [{"domain": d} for d in hidden_domains]
     return render_template(
         "removed.html",
-        hidden_domains=hidden_domains,
+        domains=domains,
         changes_pending=session.get("changes_pending", False),
         page='removed'
     )
@@ -202,10 +204,16 @@ def restore_domains():
         remove_from_hidden_list(entry)
     return redirect(url_for('view_removed'))
 
+@app.route("/restore_domain", methods=["POST"])
+def restore_domain():
+    domain = request.form.get("domain")
+    if domain:
+        remove_from_hidden_list(domain)
+    return redirect(url_for('view_removed'))
+
 @app.route("/restart_squid", methods=["POST"])
 def restart_squid():
     try:
-        # For AJAX support: show progress spinner
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             result = subprocess.run(
                 ["/usr/bin/systemctl", "restart", "squid"],
@@ -221,7 +229,6 @@ def restart_squid():
                 return jsonify({"status": "error", "message": status.stdout + status.stderr}), 500
             clear_changes_pending()
             return jsonify({"status": "ok"})
-        # Non-AJAX fallback
         result = subprocess.run(
             ["/usr/bin/systemctl", "restart", "squid"],
             capture_output=True, text=True
