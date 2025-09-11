@@ -1,54 +1,66 @@
-{% extends "base.html" %}
-{% block title %}Squid Blocked Domains{% endblock %}
-
-{% block content %}
-<div class="card">
-    <h2>Squid Blocked Domains</h2>
-    <div class="actions">
-        <form id="restartForm" action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
-            <button type="submit">Restart Squid</button>
-        </form>
-        <form action="{{ url_for('index') }}" method="get" style="display:inline;">
-            <button type="submit">Refresh List</button>
-        </form>
-        <form action="{{ url_for('allowed') }}" method="get" style="display:inline;">
-            <button type="submit">View Allowed Sites</button>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Squid Blocked Domains</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% if changes_pending %}
+    <div class="banner-alert" style="background: #fffbe6; border-bottom: 1px solid #fde4a0; color: #ad8b00; padding: 18px 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 600;">
+        <span>Changes detected: Please restart the Squid service to apply updates.</span>
+        <form method="post" action="{{ url_for('restart_squid') }}" style="margin: 0;">
+            <button type="submit" class="btn btn-primary" style="margin-left: 12px;">Restart Squid</button>
         </form>
     </div>
-    <table>
-        <tr>
-            <th>Domain</th>
-            <th>Action</th>
-        </tr>
-        {% for d in domains %}
-        <tr>
-            <td>{{ d.domain }}</td>
-            <td>
-                <form action="{{ url_for('add_allow') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="domain" value="{{ d.domain }}">
-                    <button type="submit">Add to Allow List ({{ d.parent }})</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
+    {% endif %}
+    <div class="card">
+        <h2>Squid Blocked Domains</h2>
+        <div class="actions">
+            <form id="restartForm" action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-primary">Restart Squid</button>
+            </form>
+            <form action="{{ url_for('index') }}" method="get" style="display:inline;">
+                <button type="submit" class="btn btn-primary">Refresh List</button>
+            </form>
+            <form action="{{ url_for('allowed') }}" method="get" style="display:inline;">
+                <button type="submit" class="btn btn-primary">View Allowed Sites</button>
+            </form>
+        </div>
+        <table>
+            <tr>
+                <th>Domain</th>
+                <th>Action</th>
+            </tr>
+            {% for d in domains %}
+            <tr>
+                <td>{{ d.domain }}</td>
+                <td>
+                    <form action="{{ url_for('add_allow') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="domain" value="{{ d.domain }}">
+                        <button type="submit" class="btn btn-primary">Add to Allow List ({{ d.parent }})</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
-<!-- Please Wait Modal -->
-<div id="waitModal" class="modal">
-  <div class="modal-content">
-    <div class="spinner"></div>
-    <p>Restarting Squid, please wait...</p>
-  </div>
-</div>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  var restartForm = document.getElementById('restartForm');
-  if (restartForm) {
-    restartForm.addEventListener("submit", function(e) {
-      document.getElementById("waitModal").style.display = "block";
+    <!-- Please Wait Modal -->
+    <div id="waitModal" class="modal">
+      <div class="modal-content">
+        <div class="spinner"></div>
+        <p>Restarting Squid, please wait...</p>
+      </div>
+    </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var restartForm = document.getElementById('restartForm');
+      if (restartForm) {
+        restartForm.addEventListener("submit", function(e) {
+          document.getElementById("waitModal").style.display = "block";
+        });
+      }
     });
-  }
-});
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>
