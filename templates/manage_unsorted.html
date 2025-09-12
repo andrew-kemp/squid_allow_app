@@ -37,17 +37,17 @@ document.getElementById("restart-squid-btn").onclick = function() {
 };
 </script>
 {% endif %}
-<div class="card">
+<div class="card" style="position:relative;">
     <h2>Manage Unsorted Domains</h2>
+    {% include '_actions_button.html' %}
     {% if unsorted_domains %}
     <form method="post" action="{{ url_for('bulk_mark_unsorted') }}">
-        <!-- Bulk action controls at the top -->
         <div style="margin-bottom:12px;">
             <select name="bulk" class="bulk-select">
                 <option value="allow">Allow Selected</option>
                 <option value="block">Block Selected</option>
             </select>
-            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+            <button type="submit" class="btn">Apply Bulk Action</button>
         </div>
         <table>
             <tr>
@@ -72,19 +72,18 @@ document.getElementById("restart-squid-btn").onclick = function() {
             </tr>
             {% endfor %}
         </table>
-        <!-- Bulk action controls at the bottom -->
         <div style="margin-top:12px;">
             <select name="bulk" class="bulk-select">
                 <option value="allow">Allow Selected</option>
                 <option value="block">Block Selected</option>
             </select>
-            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+            <button type="submit" class="btn">Apply Bulk Action</button>
         </div>
     </form>
     {% else %}
     <p>No unsorted domains.</p>
     {% endif %}
+    {% include '_floating_buttons.html' %}
 </div>
-{% include '_floating_buttons.html' %}
 </body>
 </html>

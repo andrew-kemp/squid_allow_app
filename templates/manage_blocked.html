@@ -37,20 +37,17 @@ document.getElementById("restart-squid-btn").onclick = function() {
 };
 </script>
 {% endif %}
-<div class="card">
+<div class="card" style="position:relative;">
     <h2>Manage Blocked Domains</h2>
+    {% include '_actions_button.html' %}
     <form method="post" action="{{ url_for('add_blocked_domain') }}" class="inline-form">
         <input type="text" name="domain" placeholder="Add domain..." required>
         <button type="submit" class="btn">Add</button>
     </form>
     {% if blocked_domains %}
     <form method="post" action="{{ url_for('bulk_remove_blocked') }}">
-        <!-- Bulk action top -->
         <div style="margin-bottom:12px;">
-            <select name="bulk" class="bulk-select">
-                <option value="remove">Remove Selected</option>
-            </select>
-            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+            <button type="submit" class="btn btn-danger">Remove Selected</button>
         </div>
         <table>
             <tr>
@@ -71,18 +68,14 @@ document.getElementById("restart-squid-btn").onclick = function() {
             </tr>
             {% endfor %}
         </table>
-        <!-- Bulk action bottom -->
         <div style="margin-top:12px;">
-            <select name="bulk" class="bulk-select">
-                <option value="remove">Remove Selected</option>
-            </select>
-            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+            <button type="submit" class="btn btn-danger">Remove Selected</button>
         </div>
     </form>
     {% else %}
     <p>No blocked domains.</p>
     {% endif %}
+    {% include '_floating_buttons.html' %}
 </div>
-{% include '_floating_buttons.html' %}
 </body>
 </html>

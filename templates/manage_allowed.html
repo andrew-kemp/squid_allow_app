@@ -37,8 +37,9 @@ document.getElementById("restart-squid-btn").onclick = function() {
 };
 </script>
 {% endif %}
-<div class="card">
+<div class="card" style="position:relative;">
     <h2>Manage Allowed Domains</h2>
+    {% include '_actions_button.html' %}
     <form method="post" action="{{ url_for('add_allowed_domain') }}" class="inline-form">
         <input type="text" name="domain" placeholder="Add domain..." required>
         <button type="submit" class="btn">Add</button>
@@ -76,7 +77,7 @@ document.getElementById("restart-squid-btn").onclick = function() {
     {% else %}
     <p>No allowed domains.</p>
     {% endif %}
+    {% include '_floating_buttons.html' %}
 </div>
-{% include '_floating_buttons.html' %}
 </body>
 </html>

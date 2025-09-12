@@ -1,6 +1,6 @@
-<div class="actions" style="margin:20px auto 30px auto; text-align:center;">
-    <a href="{{ url_for('index') }}" class="btn{% if page == 'overview' %} btn-active{% endif %}">Overview</a>
-    <a href="{{ url_for('manage_allowed') }}" class="btn{% if page == 'allowed' %} btn-active{% endif %}">Allowed Domains</a>
-    <a href="{{ url_for('manage_unsorted') }}" class="btn{% if page == 'unsorted' %} btn-active{% endif %}">Unsorted Domains</a>
-    <a href="{{ url_for('manage_blocked') }}" class="btn{% if page == 'blocked' %} btn-active{% endif %}">Blocked Domains</a>
+<div class="nav-btns">
+  <a href="{{ url_for('index') }}" class="btn btn-secondary{% if page == 'overview' %} btn-active{% endif %}">Overview</a>
+  <a href="{{ url_for('manage_allowed') }}" class="btn{% if page == 'allowed' %} btn-active{% endif %}">Allowed</a>
+  <a href="{{ url_for('manage_blocked') }}" class="btn{% if page == 'blocked' %} btn-active{% endif %}">Blocked</a>
+  <a href="{{ url_for('manage_unsorted') }}" class="btn{% if page == 'unsorted' %} btn-active{% endif %}">Unsorted</a>
 </div>
