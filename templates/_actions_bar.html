@@ -1,9 +1,12 @@
 <div class="center-actions" style="margin-bottom:1em;">
-    <button type="submit" id="allowSelected" name="action" value="allow" class="btn btn-secondary" disabled>Allow Selected</button>
-    <button type="submit" id="removeSelected" name="action" value="remove" class="btn btn-secondary" disabled>Remove Selected</button>
-    <a href="{{ url_for('allowed') }}" class="btn btn-primary{% if page == 'allowed' %} current-page{% endif %}">Allowed Domains</a>
-    <a href="{{ url_for('index') }}" class="btn btn-primary{% if page == 'blocked' %} current-page{% endif %}">Unsorted Domains</a>
-    <a href="{{ url_for('view_removed') }}" class="btn btn-primary{% if page == 'removed' %} current-page{% endif %}">Blocked Domains</a>
+    {% if show_bulk %}
+        <button type="submit" id="allowSelected" name="action" value="allow" class="btn btn-secondary" disabled>Allow Selected</button>
+        <button type="submit" id="removeSelected" name="action" value="remove" class="btn btn-secondary" disabled>Remove Selected</button>
+    {% endif %}
+    <a href="{{ url_for('index') }}" class="btn btn-primary{% if page == 'overview' %} current-page{% endif %}">Overview</a>
+    <a href="{{ url_for('manage_allowed') }}" class="btn btn-primary{% if page == 'allowed' %} current-page{% endif %}">Allowed Domains</a>
+    <a href="{{ url_for('manage_unsorted') }}" class="btn btn-primary{% if page == 'unsorted' %} current-page{% endif %}">Unsorted Domains</a>
+    <a href="{{ url_for('manage_blocked') }}" class="btn btn-primary{% if page == 'blocked' %} current-page{% endif %}">Blocked Domains</a>
     {% if changes_pending %}
         <form action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
             <button type="submit" class="btn btn-warning">Restart Squid</button>
