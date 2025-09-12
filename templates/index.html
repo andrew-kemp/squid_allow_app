@@ -8,12 +8,8 @@
 <body>
 <div class="card">
     <h2>Squid Allow Manager Overview</h2>
-    <div class="center-actions" style="margin-bottom:24px;">
-        <a href="{{ url_for('index') }}" class="btn btn-primary current-page">Overview</a>
-        <a href="{{ url_for('manage_allowed') }}" class="btn btn-secondary">Manage Allowed</a>
-        <a href="{{ url_for('manage_blocked') }}" class="btn btn-secondary">Manage Blocked</a>
-        <a href="{{ url_for('manage_unsorted') }}" class="btn btn-secondary">Manage Unsorted</a>
-    </div>
+    {% set page = 'overview' %}
+    {% include '_actions_button.html' %}
     <table>
         <tr>
             <th>Status</th>
@@ -42,12 +38,6 @@
             </td>
         </tr>
     </table>
-    <div class="center-actions" style="margin-top:32px;">
-        <form id="restart-form" action="{{ url_for('restart_squid') }}" method="post" style="display:inline;">
-            <button class="btn btn-secondary" type="submit" id="restart-btn">Restart Squid</button>
-        </form>
-        <span id="restart-status"></span>
-    </div>
     <form action="{{ url_for('logout') }}" method="post" style="margin-top:24px;text-align:center;">
         <button class="btn btn-secondary" type="submit">Logout</button>
     </form>
@@ -70,24 +60,27 @@
 </div>
 {% endif %}
 <script>
-document.getElementById('restart-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var btn = document.getElementById('restart-btn');
-    var status = document.getElementById('restart-status');
-    btn.disabled = true;
-    status.textContent = "Restarting Squid...";
-    fetch("{{ url_for('restart_squid') }}", {
-        method: "POST",
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-    }).then(resp => resp.json())
-      .then(data => {
-        status.textContent = data.status || "Restarted!";
-        btn.disabled = false;
-      }).catch(() => {
-        status.textContent = "Error restarting Squid!";
-        btn.disabled = false;
-      });
-});
+const restartForm = document.getElementById('restart-form');
+if (restartForm) {
+    restartForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var btn = document.getElementById('restart-btn');
+        var status = document.getElementById('restart-status');
+        btn.disabled = true;
+        status.textContent = "Restarting Squid...";
+        fetch("{{ url_for('restart_squid') }}", {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        }).then(resp => resp.json())
+        .then(data => {
+            status.textContent = data.status || "Restarted!";
+            btn.disabled = false;
+        }).catch(() => {
+            status.textContent = "Error restarting Squid!";
+            btn.disabled = false;
+        });
+    });
+}
 </script>
 </body>
 </html>
