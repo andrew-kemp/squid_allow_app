@@ -1,23 +1,71 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Squid Allow Manager: Overview</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="utf-8">
+    <title>Squid Allow Manager Overview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    {% include "banner_and_restart.html" %}
-    <div class="card" style="max-width:600px;text-align:center;">
-        <h2>Squid Allow Manager Overview</h2>
-        <p><b>Domains Allowed:</b> {{ allowed_count }}</p>
-        <a href="{{ url_for('allowed') }}" class="btn btn-primary">Manage Allowed Domains</a>
-        <hr>
-        <p><b>Domains Confirmed to Block:</b> {{ blocked_count }}</p>
-        <a href="{{ url_for('view_removed') }}" class="btn btn-primary">Manage Blocked Domains</a>
-        <hr>
-        <p><b>Domains Unconfirmed:</b> {{ unconfirmed_count }}</p>
-        <a href="{{ url_for('index') }}" class="btn btn-primary">Manage Unsorted Domains</a>
-        <hr>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+<div class="container">
+    <h1>Squid Allow Manager Overview</h1>
+    <table class="overview-table">
+        <tr>
+            <td>Domains Allowed</td>
+            <td class="count">{{ allowed_count }}</td>
+            <td>
+                <form action="{{ url_for('manage_allowed') }}" method="get" style="margin:0;">
+                    <button class="manage-btn" type="submit">Manage</button>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>Domains Confirmed to Block</td>
+            <td class="count">{{ blocked_count }}</td>
+            <td>
+                <form action="{{ url_for('manage_blocked') }}" method="get" style="margin:0;">
+                    <button class="manage-btn" type="submit">Manage</button>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>Domains Unconfirmed</td>
+            <td class="count">{{ unconfirmed_count }}</td>
+            <td>
+                <form action="{{ url_for('manage_unsorted') }}" method="get" style="margin:0;">
+                    <button class="manage-btn" type="submit">Manage</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+    <div class="restart-section">
+        <form id="restart-form" action="{{ url_for('restart_squid') }}" method="post">
+            <button class="restart-btn" type="submit" id="restart-btn">Restart Squid</button>
+        </form>
+        <span id="restart-status"></span>
     </div>
+    <form action="{{ url_for('logout') }}" method="post">
+        <button class="logout-btn" type="submit">Logout</button>
+    </form>
+</div>
+<script>
+document.getElementById('restart-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('restart-btn');
+    var status = document.getElementById('restart-status');
+    btn.disabled = true;
+    status.textContent = "Restarting Squid...";
+    fetch("{{ url_for('restart_squid') }}", {
+        method: "POST",
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+    }).then(resp => resp.json())
+      .then(data => {
+        status.textContent = data.status || "Restarted!";
+        btn.disabled = false;
+      }).catch(() => {
+        status.textContent = "Error restarting Squid!";
+        btn.disabled = false;
+      });
+});
+</script>
 </body>
 </html>
