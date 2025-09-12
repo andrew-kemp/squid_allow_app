@@ -7,7 +7,7 @@ VENV_DIR="$APP_DIR/venv"
 
 echo "Installing dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv git nginx squid openssl
+sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl
 
 echo "Cloning Flask app..."
 if [ ! -d "$APP_DIR" ]; then
