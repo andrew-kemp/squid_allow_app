@@ -1,14 +1,31 @@
 import os
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from publicsuffix2 import get_sld
+import pam
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET', 'supersecretkey')
 
 SQUID_LOG_FILE = "/var/log/squid/access.log"
 ALLOW_LIST_FILE = "/etc/squid/allowed_paw.acl"
-HIDDEN_LIST_FILE = "/etc/squid/hidden_domains.txt"  # new file for removed/hidden domains
+HIDDEN_LIST_FILE = "/etc/squid/hidden_domains.txt"
+
+# --- Authentication helpers ---
+
+def is_logged_in():
+    return session.get('logged_in', False)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_logged_in():
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- Domain helpers ---
 
 def get_blocked_domains():
     domains = set()
@@ -84,7 +101,51 @@ def mark_changes_pending():
 def clear_changes_pending():
     session.pop("changes_pending", None)
 
-@app.route("/", methods=["GET"])
+# --- Login routes ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        p = pam.pam()
+        if p.authenticate(username, password):
+            session['logged_in'] = True
+            session['username'] = username
+            return redirect(url_for('overview'))
+        else:
+            flash('Invalid username or password', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# --- Main routes ---
+
+@app.route('/')
+@login_required
+def overview():
+    allow_list = get_allow_list()
+    hidden_list = get_hidden_list()
+    blocked_domains = get_blocked_domains()
+    allow_set = set(allow_list)
+    hidden_set = set(hidden_list)
+    # Unconfirmed = domains seen in log, not in allow_list or hidden_list
+    unconfirmed = [d for d in blocked_domains 
+                   if get_parent_domain(d) not in allow_set and get_parent_domain(d) not in hidden_set]
+    return render_template(
+        "overview.html",
+        allowed_count=len(allow_list),
+        blocked_count=len(hidden_list),
+        unconfirmed_count=len(unconfirmed),
+        changes_pending=session.get("changes_pending", False),
+        page='overview'
+    )
+
+@app.route("/index", methods=["GET"])
+@login_required
 def index():
     blocked_domains = get_blocked_domains()
     allow_list = set(get_allow_list())
@@ -111,6 +172,7 @@ def index():
     )
 
 @app.route("/add_allow", methods=["POST"])
+@login_required
 def add_allow():
     domain = request.form.get("domain")
     if domain:
@@ -119,6 +181,7 @@ def add_allow():
     return redirect(url_for("index"))
 
 @app.route("/remove_blocked", methods=["POST"])
+@login_required
 def remove_blocked():
     domain = request.form.get("domain")
     if domain:
@@ -127,6 +190,7 @@ def remove_blocked():
     return redirect(url_for("index"))
 
 @app.route("/bulk_action", methods=["POST"])
+@login_required
 def bulk_action():
     action = request.form.get('action')
     selected = request.form.getlist('selected_domains')
@@ -164,9 +228,9 @@ def bulk_action():
     return redirect(referrer)
 
 @app.route("/allowed", methods=["GET"])
+@login_required
 def allowed():
     allow_list = get_allow_list()
-    # Pass as list of dicts for template compatibility
     domains = [{"domain": d} for d in sorted(allow_list, key=lambda d: d.lstrip('.').lower())]
     return render_template(
         "allowed.html",
@@ -176,6 +240,7 @@ def allowed():
     )
 
 @app.route("/remove_allow", methods=["POST"])
+@login_required
 def remove_allow():
     entry = request.form.get("domain") or request.form.get("entry")
     if entry:
@@ -184,9 +249,9 @@ def remove_allow():
     return redirect(url_for("allowed"))
 
 @app.route("/view_removed", methods=["GET"])
+@login_required
 def view_removed():
     hidden_domains = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
-    # Pass as list of dicts for template compatibility
     domains = [{"domain": d} for d in hidden_domains]
     return render_template(
         "removed.html",
@@ -196,6 +261,7 @@ def view_removed():
     )
 
 @app.route("/restore_domains", methods=["POST"])
+@login_required
 def restore_domains():
     selected = request.form.getlist('selected_domains')
     if not selected:
@@ -205,6 +271,7 @@ def restore_domains():
     return redirect(url_for('view_removed'))
 
 @app.route("/restore_domain", methods=["POST"])
+@login_required
 def restore_domain():
     domain = request.form.get("domain")
     if domain:
@@ -212,6 +279,7 @@ def restore_domain():
     return redirect(url_for('view_removed'))
 
 @app.route("/restart_squid", methods=["POST"])
+@login_required
 def restart_squid():
     try:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -242,14 +310,35 @@ def restart_squid():
         if status.stdout.strip() != "active":
             return f"Squid did not start successfully.<br><pre>{status.stdout} {status.stderr}</pre>", 500
         clear_changes_pending()
-        return redirect(request.referrer or url_for("index"))
+        return redirect(request.referrer or url_for("overview"))
     except Exception as e:
         return f"Exception: {e}", 500
 
 @app.route("/clear_changes", methods=["POST"])
+@login_required
 def clear_changes():
     clear_changes_pending()
-    return redirect(url_for("index"))
+    return redirect(request.referrer or url_for("overview"))
+
+@app.route('/clients')
+@login_required
+def clients():
+    clients = {}
+    if os.path.exists(SQUID_LOG_FILE):
+        with open(SQUID_LOG_FILE, "r") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) > 2:
+                    ip = parts[2]
+                    domain = parts[6] if len(parts) > 6 else ""
+                    clients.setdefault(ip, []).append(domain)
+    return render_template("clients.html", clients=clients, changes_pending=session.get("changes_pending", False))
+
+# Allow static files without login
+@app.before_request
+def exclude_static():
+    if request.endpoint and request.endpoint.startswith('static'):
+        return
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
