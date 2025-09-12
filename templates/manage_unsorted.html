@@ -1,35 +1,62 @@
-{% extends 'base.html' %}
-
-{% block title %}Unsorted Domains - Squid Allow Manager{% endblock %}
-
-{% block content %}
-<div class="card">
-    <h2>Unsorted Domains</h2>
-    {% set page = 'unsorted' %}
-    {% include '_actions_button.html' %}
-    <form method="post" action="{{ url_for('manage_unsorted') }}">
-        <table>
-            <tr>
-                <th><input type="checkbox" id="selectAll"></th>
-                <th>Domain</th>
-                <th>Actions</th>
-            </tr>
-            {% for domain in domains %}
-            <tr>
-                <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
-                <td>{{ domain }}</td>
-                <td>
-                    <button type="submit" name="action" value="allow:{{ domain }}" class="btn btn-primary">Allow</button>
-                    <button type="submit" name="action" value="block:{{ domain }}" class="btn btn-danger">Block</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Unsorted Domains</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% if changes_pending %}
+    <form method="post" action="{{ url_for('clear_changes') }}">
+      <div class="banner-alert">
+        Changes detected: Please restart the Squid service to apply updates.
+        <button type="submit" class="btn btn-warning">I've restarted Squid</button>
+      </div>
     </form>
-</div>
-<script>
-document.getElementById('selectAll')?.addEventListener('change', function(e) {
-    document.querySelectorAll('input[name="selected_domains"]').forEach(cb => cb.checked = e.target.checked);
-});
-</script>
-{% endblock %}
+    {% endif %}
+    <div class="card">
+        <h2>Unsorted Domains</h2>
+        {% include '_actions_button.html' %}
+        {% if unsorted_domains %}
+        <form method="post" action="{{ url_for('bulk_mark_unsorted') }}">
+            <table>
+                <tr>
+                    {% if show_bulk %}
+                    <th></th>
+                    {% endif %}
+                    <th>Domain</th>
+                    <th>Action</th>
+                </tr>
+                {% for domain in unsorted_domains %}
+                <tr>
+                    {% if show_bulk %}
+                    <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
+                    {% endif %}
+                    <td>{{ domain }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('mark_allowed') }}" style="display:inline;">
+                            <input type="hidden" name="domain" value="{{ domain }}">
+                            <button type="submit" class="btn btn-success">Allow</button>
+                        </form>
+                        <form method="post" action="{{ url_for('mark_blocked') }}" style="display:inline;">
+                            <input type="hidden" name="domain" value="{{ domain }}">
+                            <button type="submit" class="btn btn-danger">Block</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% if show_bulk %}
+            <select name="bulk" style="margin-top:10px;">
+                <option value="allow">Allow Selected</option>
+                <option value="block">Block Selected</option>
+            </select>
+            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+            {% endif %}
+        </form>
+        {% else %}
+        <p>No unsorted domains.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

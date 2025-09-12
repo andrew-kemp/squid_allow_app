@@ -1,38 +1,58 @@
-{% extends 'base.html' %}
-
-{% block title %}Allowed Domains - Squid Allow Manager{% endblock %}
-
-{% block content %}
-<div class="card">
-    <h2>Allowed Domains</h2>
-    {% set page = 'allowed' %}
-    {% include '_actions_button.html' %}
-    <form method="post" action="{{ url_for('manage_allowed') }}">
-        <table>
-            <tr>
-                <th><input type="checkbox" id="selectAll"></th>
-                <th>Domain</th>
-                <th>Actions</th>
-            </tr>
-            {% for domain in domains %}
-            <tr>
-                <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
-                <td>{{ domain }}</td>
-                <td>
-                    <button type="submit" name="action" value="remove:{{ domain }}" class="btn btn-danger">Remove</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        <div class="actions">
-            <input type="text" name="new_domain" placeholder="Add new domain">
-            <button type="submit" name="action" value="add" class="btn btn-primary">Add</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Allowed Domains</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% if changes_pending %}
+    <form method="post" action="{{ url_for('clear_changes') }}">
+      <div class="banner-alert">
+        Changes detected: Please restart the Squid service to apply updates.
+        <button type="submit" class="btn btn-warning">I've restarted Squid</button>
+      </div>
     </form>
-</div>
-<script>
-document.getElementById('selectAll')?.addEventListener('change', function(e) {
-    document.querySelectorAll('input[name="selected_domains"]').forEach(cb => cb.checked = e.target.checked);
-});
-</script>
-{% endblock %}
+    {% endif %}
+    <div class="card">
+        <h2>Allowed Domains</h2>
+        {% include '_actions_button.html' %}
+        <form method="post" action="{{ url_for('add_allowed_domain') }}" class="inline-form">
+            <input type="text" name="domain" placeholder="Add new domain..." required>
+            <button type="submit" class="btn">Add</button>
+        </form>
+        {% if allowed_domains %}
+        <form method="post" action="{{ url_for('bulk_remove_allowed') }}">
+            <table>
+                <tr>
+                    {% if show_bulk %}
+                    <th></th>
+                    {% endif %}
+                    <th>Domain</th>
+                    <th>Action</th>
+                </tr>
+                {% for domain in allowed_domains %}
+                <tr>
+                    {% if show_bulk %}
+                    <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
+                    {% endif %}
+                    <td>{{ domain }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('remove_allowed_domain') }}" style="display:inline;">
+                            <input type="hidden" name="domain" value="{{ domain }}">
+                            <button type="submit" class="btn btn-danger">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% if show_bulk %}
+            <button type="submit" class="btn btn-danger" style="margin-top:15px;">Remove Selected</button>
+            {% endif %}
+        </form>
+        {% else %}
+        <p>No allowed domains.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

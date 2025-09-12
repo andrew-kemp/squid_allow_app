@@ -25,6 +25,13 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- Allow static files without login ---
+@app.before_request
+def allow_static_files():
+    # Allow static files to be accessed without authentication
+    if request.endpoint and request.endpoint.startswith('static'):
+        return
+
 # --- Domain helpers ---
 
 def get_blocked_domains():
@@ -335,12 +342,6 @@ def restart_squid():
 def clear_changes():
     clear_changes_pending()
     return redirect(request.referrer or url_for("index"))
-
-# Allow static files without login
-@app.before_request
-def exclude_static():
-    if request.endpoint and request.endpoint.startswith('static'):
-        return
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
