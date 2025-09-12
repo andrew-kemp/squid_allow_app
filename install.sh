@@ -2,7 +2,7 @@
 set -e
 
 USER="$(whoami)"
-APP_DIR="/home/$USER/squid_allow_app"
+APP_DIR="/opt/squid_allow_app"
 VENV_DIR="$APP_DIR/venv"
 
 echo "Installing dependencies..."
@@ -11,7 +11,8 @@ sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx s
 
 echo "Cloning Flask app..."
 if [ ! -d "$APP_DIR" ]; then
-    git clone https://github.com/andrew-kemp/squid_allow_app.git "$APP_DIR"
+    sudo git clone https://github.com/andrew-kemp/squid_allow_app.git "$APP_DIR"
+    sudo chown -R "$USER":"$USER" "$APP_DIR"
 fi
 
 cd "$APP_DIR"
@@ -26,87 +27,68 @@ echo "Copying base allow list..."
 sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
 sudo chmod 666 /etc/squid/allowed_paw.acl
 
-# ==== BEGIN: Secure Squid Config Generation ====
+# ==== BEGIN: Use Working Squid Config ====
 echo ""
-echo "==== Squid Secure Network/Host Configuration ===="
-
-read -p "Enter the PAW subnet(s) to allow (comma or space separated, e.g. 10.1.2.0/24,10.2.3.0/24): " PAW_SUBNETS
-PAW_SUBNETS="${PAW_SUBNETS//,/ }"
-
-DEFAULT_IP=$(hostname -I | awk '{print $1}')
-read -p "Enter the internal IP address for this proxy server [${DEFAULT_IP}]: " SQUID_IP
-SQUID_IP=${SQUID_IP:-$DEFAULT_IP}
-
-echo ""
-echo "PAW subnets: $PAW_SUBNETS"
-echo "Proxy IP: $SQUID_IP"
-
-read -p "Proceed with these Squid settings? [y/N]: " CONFIRM
-if [[ ! $CONFIRM =~ ^[Yy]$ ]]; then
-    echo "Aborting Squid configuration."
-    exit 1
-fi
-
-# Backup old squid.conf
-if [ -f /etc/squid/squid.conf ]; then
-    sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.bak.$(date +%F_%T)
-    echo "Existing squid.conf backed up."
-fi
+echo "==== Writing Working Squid Configuration ===="
 
 sudo tee /etc/squid/squid.conf > /dev/null <<EOF
-# Squid Proxy for PAW/AVD - Minimal Hardened Configuration
+acl localnet src 0.0.0.0-255.255.255.255 # RFC 1122 "this" network (LAN)
+acl localnet src 10.0.0.0/8 # RFC 1918 local private network (LAN)
+acl localnet src 100.64.0.0/10 # RFC 6598 shared address space (CGN)
+acl localnet src 169.254.0.0/16 # RFC 3927 link-local (directly plugged) machines
+acl localnet src 172.16.0.0/12 # RFC 1918 local private network (LAN)
+acl localnet src 192.168.8.0/22 192.168.144.0/20 # RFC 1918 local private network (LAN)
+acl localnet src fc00::/7 # RFC 4193 local private network range
+acl localnet src fe80::/10 # RFC 4291 link-local (directly plugged) machines
 
-http_port $SQUID_IP:3128
-visible_hostname paw-avd-proxy
-
-# Allow only specified PAW subnets
-acl avd_paws src $PAW_SUBNETS
-
-# Allow-list of destination domains (managed separately)
-acl allowed_domains dstdomain "/etc/squid/allowed_paw.acl"
-
-# Only allow HTTP and HTTPS ports
-acl Safe_ports port 80
 acl SSL_ports port 443
+acl Safe_ports port 80 # http
+acl Safe_ports port 21 # ftp
+acl Safe_ports port 443 # https
+acl Safe_ports port 70 # gopher
+acl Safe_ports port 210 # wais
+acl Safe_ports port 1025-65535 # unregistered ports
+acl Safe_ports port 280 # http-mgmt
+acl Safe_ports port 488 # gss-http
+acl Safe_ports port 591 # filemaker
+acl Safe_ports port 777 # multiling http
+acl PAW_Access dstdomain "/etc/squid/allowed_paw.acl"
 
+# Deny requests to certain unsafe ports
 http_access deny !Safe_ports
+
+# Deny CONNECT to other than secure SSL ports
 http_access deny CONNECT !SSL_ports
 
-# Allow access only from PAW subnets to allowed domains
-http_access allow avd_paws allowed_domains
+# Only allow cachemgr access from localhost
+http_access allow localhost manager
+http_access deny manager
 
-# Deny all other requests
+http_access allow localhost
+
+http_access deny to_localhost
+
+# Protect cloud servers that provide local users with sensitive info about
+# their server via certain well-known link-local (a.k.a. APIPA) addresses.
+http_access deny to_linklocal
+
+include /etc/squid/conf.d/*.conf
+
+http_access allow PAW_Access
 http_access deny all
 
-# Disable all caching (optional for PAW)
-cache deny all
+# Squid normally listens to port 3128
+http_port 3128
 
-# Hide client details and Squid version
-forwarded_for delete
-via off
-
-# Limit request and reply sizes
-request_body_max_size 10 MB
-reply_body_max_size 50 MB
-
-# DNS hardening
-dns_v4_first on
-
-# Logging
-access_log /var/log/squid/access.log
-cache_log /var/log/squid/cache.log
-logfile_rotate 14
-
-# Resource tuning
-cache_mem 64 MB
-maximum_object_size_in_memory 128 KB
-
-# End of config
+cache_effective_group proxy
 EOF
 
 echo "New /etc/squid/squid.conf written."
-# Deploy custom Squid error page
-sudo cp ERR_ACCESS_DENIED.html /usr/share/squid/errors/English/ERR_ACCESS_DENIED
+
+# Deploy custom Squid error page if you have one
+if [ -f ERR_ACCESS_DENIED.html ]; then
+    sudo cp ERR_ACCESS_DENIED.html /usr/share/squid/errors/English/ERR_ACCESS_DENIED
+fi
 
 if [ ! -f /etc/squid/allowed_paw.acl ]; then
     echo "---------------------------------------------"
@@ -120,7 +102,7 @@ fi
 
 sudo systemctl restart squid
 
-# ==== END: Secure Squid Config Generation ====
+# ==== END: Use Working Squid Config ====
 
 echo "Setting up sudoers for squid restart..."
 SUDOERS_LINE="$USER ALL=NOPASSWD: /bin/systemctl restart squid"
@@ -178,4 +160,4 @@ sudo systemctl enable squid_allow_app
 sudo systemctl start squid_allow_app
 
 echo "All setup complete!"
-echo "Access your app at https://$SQUID_IP/"
+echo "Access your app at https://$(hostname -I | awk '{print $1}')/"
