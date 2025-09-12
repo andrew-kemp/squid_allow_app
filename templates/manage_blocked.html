@@ -6,47 +6,83 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    {% if changes_pending %}
-    <form method="post" action="{{ url_for('clear_changes') }}">
-      <div class="banner-alert">
-        Changes detected: Please restart the Squid service to apply updates.
-        <button type="submit" class="btn btn-warning">I've restarted Squid</button>
-      </div>
+{% if changes_pending %}
+<div class="banner-alert" id="banner-alert">
+  Changes detected: Please restart the Squid service to apply updates.
+  <button type="button" class="btn btn-warning" id="restart-squid-btn">Restart Squid</button>
+  <span id="restart-spinner" style="display:none;vertical-align:middle;">
+    <svg width="28" height="28" viewBox="0 0 44 44" stroke="#2563eb">
+      <g fill="none" fill-rule="evenodd" stroke-width="4">
+        <circle cx="22" cy="22" r="20" stroke-opacity=".2"/>
+        <path d="M42 22c0-11.046-8.954-20-20-20">
+          <animateTransform attributeName="transform" type="rotate"
+            from="0 22 22" to="360 22 22"
+            dur="0.9s" repeatCount="indefinite"/>
+        </path>
+      </g>
+    </svg>
+    Restarting...
+  </span>
+</div>
+<script>
+document.getElementById("restart-squid-btn").onclick = function() {
+  this.style.display = "none";
+  document.getElementById("restart-spinner").style.display = "inline-block";
+  fetch('{{ url_for("restart_squid") }}', {method:"POST"})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById("restart-spinner").innerHTML = data.message || "Restarted!";
+      setTimeout(() => location.reload(), 2000);
+    });
+};
+</script>
+{% endif %}
+<div class="card">
+    <h2>Manage Blocked Domains</h2>
+    <form method="post" action="{{ url_for('add_blocked_domain') }}" class="inline-form">
+        <input type="text" name="domain" placeholder="Add domain..." required>
+        <button type="submit" class="btn">Add</button>
     </form>
+    {% if blocked_domains %}
+    <form method="post" action="{{ url_for('bulk_remove_blocked') }}">
+        <!-- Bulk action top -->
+        <div style="margin-bottom:12px;">
+            <select name="bulk" class="bulk-select">
+                <option value="remove">Remove Selected</option>
+            </select>
+            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+        </div>
+        <table>
+            <tr>
+                <th></th>
+                <th>Domain</th>
+                <th>Action</th>
+            </tr>
+            {% for domain in blocked_domains %}
+            <tr>
+                <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
+                <td>{{ domain }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('remove_blocked_domain') }}" style="display:inline;">
+                        <input type="hidden" name="domain" value="{{ domain }}">
+                        <button type="submit" class="btn btn-danger">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <!-- Bulk action bottom -->
+        <div style="margin-top:12px;">
+            <select name="bulk" class="bulk-select">
+                <option value="remove">Remove Selected</option>
+            </select>
+            <button type="submit" class="btn" style="margin-left:10px;">Apply Bulk Action</button>
+        </div>
+    </form>
+    {% else %}
+    <p>No blocked domains.</p>
     {% endif %}
-    <div class="card">
-        <h2>Manage Blocked Domains</h2>
-        {% include '_actions_button.html' %}
-        <form method="post" action="{{ url_for('add_blocked_domain') }}" class="inline-form">
-            <input type="text" name="domain" placeholder="Add domain..." required>
-            <button type="submit" class="btn">Add</button>
-        </form>
-        {% if blocked_domains %}
-        <form method="post" action="{{ url_for('bulk_remove_blocked') }}">
-            <table>
-                <tr>
-                    <th></th>
-                    <th>Domain</th>
-                    <th>Action</th>
-                </tr>
-                {% for domain in blocked_domains %}
-                <tr>
-                    <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
-                    <td>{{ domain }}</td>
-                    <td>
-                        <form method="post" action="{{ url_for('remove_blocked_domain') }}" style="display:inline;">
-                            <input type="hidden" name="domain" value="{{ domain }}">
-                            <button type="submit" class="btn btn-danger">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-            <button type="submit" class="btn btn-danger" style="margin-top:15px;">Remove Selected</button>
-        </form>
-        {% else %}
-        <p>No blocked domains.</p>
-        {% endif %}
-    </div>
+</div>
+{% include '_floating_buttons.html' %}
 </body>
 </html>

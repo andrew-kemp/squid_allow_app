@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from publicsuffix2 import get_sld
 import pam
 from functools import wraps
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET', 'supersecretkey')
@@ -142,7 +143,8 @@ def index():
     # Unconfirmed = domains seen in log, not in allow_list or hidden_list
     unconfirmed = [d for d in blocked_domains
                    if get_parent_domain(d) not in allow_set and get_parent_domain(d) not in hidden_set]
-    # Client overview
+    
+    # Client overview - only show IP and last connected time
     clients = {}
     if os.path.exists(SQUID_LOG_FILE):
         with open(SQUID_LOG_FILE, "r") as f:
@@ -150,8 +152,16 @@ def index():
                 parts = line.split()
                 if len(parts) > 2:
                     ip = parts[2]
-                    domain = parts[6] if len(parts) > 6 else ""
-                    clients.setdefault(ip, []).append(domain)
+                    # Extract the timestamp from the log (epoch in seconds)
+                    try:
+                        timestamp = float(parts[0])
+                        last_connected = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception:
+                        last_connected = "Unknown"
+                    # Always keep the latest connection time
+                    if ip not in clients or last_connected > clients[ip]:
+                        clients[ip] = last_connected
+
     return render_template(
         "index.html",
         allowed_count=len(allow_list),

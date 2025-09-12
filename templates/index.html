@@ -1,20 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Squid Allow Manager Overview</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8">
+  <title>Overview</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    {% if changes_pending %}
-    <form method="post" action="{{ url_for('clear_changes') }}">
-      <div class="banner-alert">
-        Changes detected: Please restart the Squid service to apply updates.
-        <button type="submit" class="btn btn-warning">I've restarted Squid</button>
-      </div>
-    </form>
-    {% endif %}
-    <div class="card">
+  {% if changes_pending %}
+  <div class="banner-alert" id="banner-alert">
+    Changes detected: Please restart the Squid service to apply updates.
+    <button type="button" class="btn btn-warning" id="restart-squid-btn">Restart Squid</button>
+    <span id="restart-spinner" style="display:none;vertical-align:middle;">
+      <svg width="28" height="28" viewBox="0 0 44 44" stroke="#2563eb">
+        <g fill="none" fill-rule="evenodd" stroke-width="4">
+          <circle cx="22" cy="22" r="20" stroke-opacity=".2"/>
+          <path d="M42 22c0-11.046-8.954-20-20-20">
+            <animateTransform attributeName="transform" type="rotate"
+              from="0 22 22" to="360 22 22"
+              dur="0.9s" repeatCount="indefinite"/>
+          </path>
+        </g>
+      </svg>
+      Restarting...
+    </span>
+  </div>
+  <script>
+  document.getElementById("restart-squid-btn").onclick = function() {
+    this.style.display = "none";
+    document.getElementById("restart-spinner").style.display = "inline-block";
+    fetch('{{ url_for("restart_squid") }}', {method:"POST"})
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById("restart-spinner").innerHTML = data.message || "Restarted!";
+        setTimeout(() => location.reload(), 2000);
+      });
+  };
+  </script>
+  {% endif %}
+  <div class="card">
         <h2>Squid Allow Manager Overview</h2>
         {% include '_actions_button.html' %}
         <table>
@@ -45,26 +68,24 @@
                 </td>
             </tr>
         </table>
-        <form action="{{ url_for('logout') }}" method="post" style="margin-top:24px;text-align:center;">
-            <button class="btn btn-secondary" type="submit">Logout</button>
-        </form>
     </div>
     {% if clients %}
     <div class="card" style="margin-top:32px;">
         <h3>Client Overview</h3>
         <table>
-            <tr>
+         <tr>
                 <th>Client IP</th>
-                <th>Domains Accessed</th>
-            </tr>
-            {% for ip, domains in clients.items() %}
-            <tr>
-                <td>{{ ip }}</td>
-                <td>{{ domains|join(', ') }}</td>
-            </tr>
-            {% endfor %}
+                <th>Last Connected</th>
+         </tr>
+         {% for ip, last_connected in clients.items() %}
+         <tr>
+             <td>{{ ip }}</td>
+             <td>{{ last_connected }}</td>
+         </tr>
+         {% endfor %}
         </table>
     </div>
     {% endif %}
+  {% include '_floating_buttons.html' %}
 </body>
 </html>
