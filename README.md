@@ -1,14 +1,18 @@
-# Squid PAW Manager
+# PAW Proxy Pilot
 
-A web-based GUI for Squid Proxy, designed specifically for controlling and managing access for Privileged Access Workstations (PAWs). This tool provides an intuitive interface for managing allow-lists, enabling organizations to tightly control internet access for privileged endpoints.
+**PAW Proxy Pilot** is a secure, web-based GUI for managing Squid Proxy domain allow/block lists, designed specifically for Privileged Access Workstations (PAWs). This tool gives organizations a simple, powerful interface to tightly control internet access for privileged endpoints.
 
 ## Features
 
-- **Web-Based GUI:** Manage Squid allow-lists from a browser.
-- **Purpose-Built for PAWs:** Tailored for controlling web access from Privileged Access Workstations.
-- **Automated Setup:** Installs all required dependencies and also sets up and configures Squid.
-- **Easy Updates:** Update script seamlessly checks for and applies updates, restarting the service as needed.
-- **Cross-Platform:** Built with Python and Shell scripts for maximum compatibility.
+- **Web-Based GUI:** Manage Squid allow/block lists from your browser.
+- **PAW Focus:** Purpose-built for Privileged Access Workstations and secure environments.
+- **Full Allow/Block Management:** Add, remove, sort, and bulk-manage allowed, blocked, or unsorted domains.
+- **Automated Setup:** Installs and configures all required dependencies, Squid, and system services.
+- **Easy Updates:** Update script checks for and applies updates, restarting services if needed.
+- **Client Visibility:** View a summary of recent client IPs using the proxy.
+- **Real-Time Application:** Changes are validated and applied immediately to the Squid proxy.
+- **Integrated Restart:** Restart Squid directly from the web UI when changes are pending.
+- **Secure by Design:** PAM authentication (Linux user/password) for admin access.
 
 ## Table of Contents
 
@@ -29,65 +33,66 @@ A web-based GUI for Squid Proxy, designed specifically for controlling and manag
 - Bash shell
 - sudo privileges for installation and updating
 
-**No pre-existing Squid installation necessary** — the setup script will install and configure Squid for you.
+**No pre-existing Squid install is necessary** — the setup script will install and configure everything you need!
 
 ## Installation
 
-Download and run the installation script as root:
+Clone the repository and run the install script:
 
 ```bash
-curl -O https://raw.githubusercontent.com/andrew-kemp/squid_allow_app/main/install.sh
+git clone https://github.com/andrew-kemp/squid_allow_app.git /opt/paw_proxy_pilot
+cd /opt/paw_proxy_pilot
 sudo bash install.sh
 ```
 
 The installer will:
 
-- Install all required services and dependencies (including Squid)
-- Set up the Squid PAW Manager web interface
-- Configure Squid for PAW access management
-- Create and enable the necessary system services
+- Install all required packages (including Squid, nginx, Python, PAM)
+- Set up the PAW Proxy Pilot web interface
+- Generate SSL certs and configure nginx as a reverse proxy
+- Configure Squid for PAW domain management
+- Enable and start system services
 
 ## Usage
 
-After installation, access the web GUI by navigating to:
+After installation, access the web GUI at:
 
 ```
-http://<server-ip>:<configured-port>/
+https://<server-ip>/
 ```
 
-- Log in with your administrator credentials (default or as configured during installation)
-- Add, remove, or manage PAW allow-lists directly from the interface
-- All changes apply in real-time to the Squid proxy
+- Log in with your Linux administrator credentials (PAM authentication)
+- Add, remove, allow, or block domains directly from the interface
+- Restart Squid from the UI when prompted after changes
 
 ## Updating
 
-To check for updates and update the application, run:
+To update the application, simply run:
 
 ```bash
 sudo bash update.sh
 ```
 
-This will:
-
-- Fetch the latest version of Squid PAW Manager and its components
-- Update files as needed
-- Restart the service so changes take effect
+This will fetch the latest version, update all files, and restart services as needed.
 
 ## How it Works
 
-- The web GUI manages Squid allow-lists and configuration files specific to PAW access
-- All changes made via the GUI are validated and applied immediately
-- Python handles the backend logic; shell scripts manage system and Squid-level integration
+- The web GUI manages domain lists for Squid (allowed, blocked, unsorted)
+- Python/Flask powers the backend; shell scripts manage OS and Squid integration
+- All changes are validated and applied instantly; restart Squid via the UI to take effect
+- Systemd and nginx are configured for security and performance
 
 ## Security
 
-- Restrict web interface access to trusted administrators only
-- Run behind a firewall or use network-level access controls
-- Change all default passwords immediately after installation
+- Web interface requires Linux (PAM) authentication
+- Restrict access to trusted administrators only
+- Run behind a firewall or limit access via network controls
+- Change all default credentials immediately after installation
+- SSL (self-signed by default) is enabled for the web interface
 
 ## Contributing
 
-Feedback, bug reports, and pull requests are welcome! Please open an issue or submit a PR through this repository.
+Feedback, bug reports, and PRs are welcome! Please open an issue or submit a pull request.
 
 ## License
 

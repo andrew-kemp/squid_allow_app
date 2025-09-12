@@ -2,7 +2,7 @@
 set -e
 
 USER="$(whoami)"
-APP_DIR="/opt/squid_allow_app"
+APP_DIR="/opt/paw_proxy_pilot"
 VENV_DIR="$APP_DIR/venv"
 REPO_URL="https://github.com/andrew-kemp/squid_allow_app.git"
 
@@ -10,7 +10,7 @@ echo "Installing dependencies..."
 sudo apt-get update
 sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl
 
-echo "Cloning or updating Flask app repository..."
+echo "Cloning or updating PAW Proxy Pilot repository..."
 if [ ! -d "$APP_DIR" ]; then
     sudo git clone "$REPO_URL" "$APP_DIR"
 fi
@@ -122,18 +122,18 @@ fi
 echo "Generating self-signed SSL cert for nginx..."
 sudo mkdir -p /etc/nginx/ssl
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/squid_allow_app.key \
-    -out /etc/nginx/ssl/squid_allow_app.crt \
+    -keyout /etc/nginx/ssl/paw_proxy_pilot.key \
+    -out /etc/nginx/ssl/paw_proxy_pilot.crt \
     -subj "/CN=$(hostname)"
 
-echo "Configuring nginx reverse proxy for Flask app..."
-sudo tee /etc/nginx/sites-available/squid_allow_app > /dev/null <<NGINXCONF
+echo "Configuring nginx reverse proxy for PAW Proxy Pilot..."
+sudo tee /etc/nginx/sites-available/paw_proxy_pilot > /dev/null <<NGINXCONF
 server {
     listen 443 ssl;
     server_name _;
 
-    ssl_certificate /etc/nginx/ssl/squid_allow_app.crt;
-    ssl_certificate_key /etc/nginx/ssl/squid_allow_app.key;
+    ssl_certificate /etc/nginx/ssl/paw_proxy_pilot.crt;
+    ssl_certificate_key /etc/nginx/ssl/paw_proxy_pilot.key;
 
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -145,13 +145,13 @@ server {
 }
 NGINXCONF
 
-sudo ln -sf /etc/nginx/sites-available/squid_allow_app /etc/nginx/sites-enabled/squid_allow_app
+sudo ln -sf /etc/nginx/sites-available/paw_proxy_pilot /etc/nginx/sites-enabled/paw_proxy_pilot
 sudo systemctl restart nginx
 
-echo "Creating systemd service for Flask app..."
-sudo tee /etc/systemd/system/squid_allow_app.service > /dev/null <<EOF
+echo "Creating systemd service for PAW Proxy Pilot..."
+sudo tee /etc/systemd/system/paw_proxy_pilot.service > /dev/null <<EOF
 [Unit]
-Description=Squid Allow List Flask App
+Description=PAW Proxy Pilot Flask App
 After=network.target
 
 [Service]
@@ -165,8 +165,8 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable squid_allow_app
-sudo systemctl restart squid_allow_app
+sudo systemctl enable paw_proxy_pilot
+sudo systemctl restart paw_proxy_pilot
 
 echo "All setup complete!"
-echo "Access your app at https://$(hostname -I | awk '{print $1}')/"
+echo "Access PAW Proxy Pilot at https://$(hostname -I | awk '{print $1}')/"

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Overview</title>
+  <title>PAW Proxy Pilot</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -38,7 +38,13 @@
   </script>
   {% endif %}
   <div class="card" style="min-height:540px; position:relative;">
-        <h2>Squid Allow Manager Overview</h2>
+        <div style="text-align:center; font-weight:700; font-size:1.5em; margin-bottom:10px;">
+          <span style="color:#2563eb;">PAW Proxy Pilot</span>
+        </div>
+        <div style="text-align:center; color:#6b7280; margin-bottom:24px;">
+          Privileged Access Web Proxy Management
+        </div>
+        <h2>Overview</h2>
         {% include '_actions_button.html' %}
         <table>
             <tr>
