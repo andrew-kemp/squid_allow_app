@@ -133,14 +133,26 @@ def index():
     allow_set = set(allow_list)
     hidden_set = set(hidden_list)
     # Unconfirmed = domains seen in log, not in allow_list or hidden_list
-    unconfirmed = [d for d in blocked_domains 
+    unconfirmed = [d for d in blocked_domains
                    if get_parent_domain(d) not in allow_set and get_parent_domain(d) not in hidden_set]
+    # Client overview
+    clients = {}
+    if os.path.exists(SQUID_LOG_FILE):
+        with open(SQUID_LOG_FILE, "r") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) > 2:
+                    ip = parts[2]
+                    domain = parts[6] if len(parts) > 6 else ""
+                    clients.setdefault(ip, []).append(domain)
     return render_template(
         "index.html",
         allowed_count=len(allow_list),
         blocked_count=len(hidden_list),
         unconfirmed_count=len(unconfirmed),
-        page='overview'
+        clients=clients,
+        page='overview',
+        changes_pending=session.get("changes_pending", False)
     )
 
 # --- Manage Allowed Domains ---
@@ -151,7 +163,10 @@ def manage_allowed():
     allowed = sorted(get_allow_list(), key=lambda d: d.lstrip('.').lower())
     return render_template(
         "manage_allowed.html",
-        allowed_domains=allowed
+        allowed_domains=allowed,
+        page='allowed',
+        show_bulk=True,
+        changes_pending=session.get("changes_pending", False)
     )
 
 @app.route("/add_allowed_domain", methods=["POST"])
@@ -172,6 +187,15 @@ def remove_allowed_domain():
         mark_changes_pending()
     return redirect(url_for("manage_allowed"))
 
+@app.route("/bulk_remove_allowed", methods=["POST"])
+@login_required
+def bulk_remove_allowed():
+    selected = request.form.getlist('selected_domains')
+    for entry in selected:
+        remove_from_allow_list(entry)
+    mark_changes_pending()
+    return redirect(url_for("manage_allowed"))
+
 # --- Manage Blocked Domains ---
 
 @app.route("/manage_blocked", methods=["GET"])
@@ -180,7 +204,10 @@ def manage_blocked():
     blocked = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
     return render_template(
         "manage_blocked.html",
-        blocked_domains=blocked
+        blocked_domains=blocked,
+        page='blocked',
+        show_bulk=True,
+        changes_pending=session.get("changes_pending", False)
     )
 
 @app.route("/add_blocked_domain", methods=["POST"])
@@ -201,6 +228,15 @@ def remove_blocked_domain():
         mark_changes_pending()
     return redirect(url_for("manage_blocked"))
 
+@app.route("/bulk_remove_blocked", methods=["POST"])
+@login_required
+def bulk_remove_blocked():
+    selected = request.form.getlist('selected_domains')
+    for entry in selected:
+        remove_from_hidden_list(entry)
+    mark_changes_pending()
+    return redirect(url_for("manage_blocked"))
+
 # --- Manage Unsorted Domains ---
 
 @app.route("/manage_unsorted", methods=["GET"])
@@ -217,7 +253,10 @@ def manage_unsorted():
     unsorted = sorted(set(unsorted), key=lambda d: d.lower())
     return render_template(
         "manage_unsorted.html",
-        unsorted_domains=unsorted
+        unsorted_domains=unsorted,
+        page='unsorted',
+        show_bulk=True,
+        changes_pending=session.get("changes_pending", False)
     )
 
 @app.route("/mark_allowed", methods=["POST"])
@@ -238,7 +277,21 @@ def mark_blocked():
         mark_changes_pending()
     return redirect(url_for("manage_unsorted"))
 
-# --- Squid Restart ---
+@app.route("/bulk_mark_unsorted", methods=["POST"])
+@login_required
+def bulk_mark_unsorted():
+    selected = request.form.getlist('selected_domains')
+    bulk_action = request.form.get('bulk')
+    if bulk_action == 'allow':
+        for domain in selected:
+            add_to_allow_list(domain)
+    elif bulk_action == 'block':
+        for domain in selected:
+            add_to_hidden_list(domain)
+    mark_changes_pending()
+    return redirect(url_for("manage_unsorted"))
+
+# --- Squid Restart and Clear Changes ---
 
 @app.route("/restart_squid", methods=["POST"])
 @login_required
@@ -276,6 +329,12 @@ def restart_squid():
         return redirect(url_for("index"))
     except Exception as e:
         return f"Exception: {e}", 500
+
+@app.route("/clear_changes", methods=["POST"])
+@login_required
+def clear_changes():
+    clear_changes_pending()
+    return redirect(request.referrer or url_for("index"))
 
 # Allow static files without login
 @app.before_request
