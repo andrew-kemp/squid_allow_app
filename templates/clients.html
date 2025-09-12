@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Squid Client Activity</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% include "banner_and_restart.html" %}
+    <div class="card">
+        <h2>Client Activity</h2>
+        <table>
+            <tr><th>Client IP</th><th>Requested Domains (last 20)</th></tr>
+            {% for ip, domains in clients.items() %}
+            <tr>
+                <td>{{ ip }}</td>
+                <td>
+                {% for d in domains[-20:] %}
+                    {{ d }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <a href="{{ url_for('overview') }}" class="btn btn-secondary">Back to Overview</a>
+    </div>
+</body>
+</html>
