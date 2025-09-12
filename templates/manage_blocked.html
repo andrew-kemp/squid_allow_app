@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Blocked Domains</title>
+    <title>Manage Blocked Domains</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -15,27 +15,23 @@
     </form>
     {% endif %}
     <div class="card">
-        <h2>Blocked Domains</h2>
+        <h2>Manage Blocked Domains</h2>
         {% include '_actions_button.html' %}
         <form method="post" action="{{ url_for('add_blocked_domain') }}" class="inline-form">
-            <input type="text" name="domain" placeholder="Add new domain to block..." required>
+            <input type="text" name="domain" placeholder="Add domain..." required>
             <button type="submit" class="btn">Add</button>
         </form>
         {% if blocked_domains %}
         <form method="post" action="{{ url_for('bulk_remove_blocked') }}">
             <table>
                 <tr>
-                    {% if show_bulk %}
                     <th></th>
-                    {% endif %}
                     <th>Domain</th>
                     <th>Action</th>
                 </tr>
                 {% for domain in blocked_domains %}
                 <tr>
-                    {% if show_bulk %}
                     <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
-                    {% endif %}
                     <td>{{ domain }}</td>
                     <td>
                         <form method="post" action="{{ url_for('remove_blocked_domain') }}" style="display:inline;">
@@ -46,9 +42,7 @@
                 </tr>
                 {% endfor %}
             </table>
-            {% if show_bulk %}
             <button type="submit" class="btn btn-danger" style="margin-top:15px;">Remove Selected</button>
-            {% endif %}
         </form>
         {% else %}
         <p>No blocked domains.</p>
