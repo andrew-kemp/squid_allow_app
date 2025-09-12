@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Squid Allow Manager: Overview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% include "banner_and_restart.html" %}
+    <div class="card" style="max-width:600px;text-align:center;">
+        <h2>Squid Allow Manager Overview</h2>
+        <p><b>Domains Allowed:</b> {{ allowed_count }}</p>
+        <a href="{{ url_for('allowed') }}" class="btn btn-primary">Manage Allowed Domains</a>
+        <hr>
+        <p><b>Domains Confirmed to Block:</b> {{ blocked_count }}</p>
+        <a href="{{ url_for('view_removed') }}" class="btn btn-primary">Manage Blocked Domains</a>
+        <hr>
+        <p><b>Domains Unconfirmed:</b> {{ unconfirmed_count }}</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Manage Unsorted Domains</a>
+        <hr>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+    </div>
+</body>
+</html>
