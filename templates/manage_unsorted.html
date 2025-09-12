@@ -8,34 +8,56 @@
 <body>
 <div class="card">
     <h2>Manage Unsorted Domains</h2>
-    <div class="center-actions">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Overview</a>
-    </div>
-    <table>
-        <tr>
-            <th>Domain</th>
-            <th>Mark As</th>
-        </tr>
-        {% for domain in unsorted_domains %}
-        <tr>
-            <td>{{ domain }}</td>
-            <td>
-                <form action="{{ url_for('mark_allowed') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="domain" value="{{ domain }}">
-                    <button type="submit" class="btn btn-primary">Allow</button>
-                </form>
-                <form action="{{ url_for('mark_blocked') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="domain" value="{{ domain }}">
-                    <button type="submit" class="btn btn-danger">Block</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="2" style="text-align:center; color:#888;">No unsorted domains.</td>
-        </tr>
-        {% endfor %}
-    </table>
+    {% set page = 'unsorted' %}
+    {% set show_bulk = true %}
+    {% include '_actions_button.html' %}
+    <form action="{{ url_for('bulk_mark_unsorted') }}" method="post" id="bulkForm">
+        <table>
+            <tr>
+                <th><input type="checkbox" id="select-all"></th>
+                <th>Domain</th>
+                <th>Mark As</th>
+            </tr>
+            {% for domain in unsorted_domains %}
+            <tr>
+                <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
+                <td>{{ domain }}</td>
+                <td>
+                    <button name="action" value="allow:{{ domain }}" class="btn btn-primary" type="submit">Allow</button>
+                    <button name="action" value="block:{{ domain }}" class="btn btn-danger" type="submit">Block</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" style="text-align:center; color:#888;">No unsorted domains.</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div class="actions" style="margin-top:12px;">
+            <button class="btn btn-primary" id="allowSelected" name="bulk" value="allow" type="submit" disabled>Allow Selected</button>
+            <button class="btn btn-danger" id="removeSelected" name="bulk" value="block" type="submit" disabled>Block Selected</button>
+        </div>
+    </form>
 </div>
+<script>
+const selectAll = document.getElementById('select-all');
+if (selectAll) {
+    selectAll.onclick = function() {
+        var checkboxes = document.getElementsByName('selected_domains');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+        updateBulkButtons();
+    }
+}
+function updateBulkButtons() {
+    var anyChecked = Array.from(document.getElementsByName('selected_domains')).some(cb => cb.checked);
+    document.getElementById('allowSelected').disabled = !anyChecked;
+    document.getElementById('removeSelected').disabled = !anyChecked;
+}
+document.querySelectorAll('input[name="selected_domains"]').forEach(cb => {
+    cb.addEventListener('change', updateBulkButtons);
+});
+</script>
 </body>
 </html>
