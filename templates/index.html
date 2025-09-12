@@ -1,11 +1,8 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Squid Allow Manager Overview</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Squid Allow Manager Overview{% endblock %}
+
+{% block content %}
 <div class="card">
     <h2>Squid Allow Manager Overview</h2>
     {% set page = 'overview' %}
@@ -59,28 +56,4 @@
     </table>
 </div>
 {% endif %}
-<script>
-const restartForm = document.getElementById('restart-form');
-if (restartForm) {
-    restartForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var btn = document.getElementById('restart-btn');
-        var status = document.getElementById('restart-status');
-        btn.disabled = true;
-        status.textContent = "Restarting Squid...";
-        fetch("{{ url_for('restart_squid') }}", {
-            method: "POST",
-            headers: { "X-Requested-With": "XMLHttpRequest" }
-        }).then(resp => resp.json())
-        .then(data => {
-            status.textContent = data.status || "Restarted!";
-            btn.disabled = false;
-        }).catch(() => {
-            status.textContent = "Error restarting Squid!";
-            btn.disabled = false;
-        });
-    });
-}
-</script>
-</body>
-</html>
+{% endblock %}

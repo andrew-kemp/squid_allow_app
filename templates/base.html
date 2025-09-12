@@ -1,45 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{% block title %}Squid Blocked Domains{% endblock %}</title>
+    <meta charset="utf-8">
+    <title>{% block title %}Squid Allow Manager{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-      .banner-alert {
-        background: #fffbe6;
-        color: #b08b00;
-        border-bottom: 1px solid #ffe58f;
-        text-align: center;
-        padding: 10px 0;
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-bottom: 0;
-      }
-      .banner-alert button {
-        margin-left: 16px;
-        background: #e6f7ff;
-        color: #096dd9;
-        border: 1px solid #91d5ff;
-        border-radius: 4px;
-        padding: 4px 12px;
-        cursor: pointer;
-        font-size: 1em;
-        transition: background 0.2s;
-      }
-      .banner-alert button:hover {
-        background: #bae7ff;
-      }
-    </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
     {% if changes_pending %}
     <form method="post" action="{{ url_for('clear_changes') }}">
       <div class="banner-alert">
         Changes detected: Please restart the Squid service to apply updates.
-        <button type="submit">I've restarted Squid</button>
+        <button type="submit" class="btn btn-warning">I've restarted Squid</button>
       </div>
     </form>
     {% endif %}
-
     <div class="container">
       {% block content %}{% endblock %}
     </div>

@@ -1,26 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login - Squid Allow Manager</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<div class="card" style="max-width:350px;margin-top:80px">
+{% extends 'base.html' %}
+
+{% block title %}Login - Squid Allow Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 410px; margin: 64px auto;">
     <h2>Login</h2>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-        {% for category, message in messages %}
-          <li style="color:red;">{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-    <form method="post">
-        <label>Username:<br><input type="text" name="username" required></label><br><br>
-        <label>Password:<br><input type="password" name="password" required></label><br><br>
-        <button type="submit" class="btn btn-primary">Login</button>
+    <form action="{{ url_for('login') }}" method="post">
+        {% if error %}
+        <div class="banner-alert" style="margin-bottom:16px;">{{ error }}</div>
+        {% endif %}
+        <div style="margin-bottom:18px;">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required autofocus style="width:100%;padding:10px;margin-top:7px;">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required style="width:100%;padding:10px;margin-top:7px;">
+        </div>
+        <div style="text-align:center;">
+            <button class="btn btn-primary" type="submit">Login</button>
+        </div>
     </form>
 </div>
-</body>
-</html>
+{% endblock %}

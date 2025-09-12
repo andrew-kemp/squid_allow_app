@@ -1,65 +1,38 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Manage Allowed Domains</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Allowed Domains - Squid Allow Manager{% endblock %}
+
+{% block content %}
 <div class="card">
-    <h2>Manage Allowed Domains</h2>
+    <h2>Allowed Domains</h2>
     {% set page = 'allowed' %}
-    {% set show_bulk = true %}
     {% include '_actions_button.html' %}
-    <form action="{{ url_for('add_allowed_domain') }}" method="post" class="actions" style="margin-bottom:1em;">
-        <input type="text" name="domain" placeholder="Add domain..." required>
-        <button class="btn btn-primary" type="submit">Add</button>
-    </form>
-    <form action="{{ url_for('bulk_remove_allowed') }}" method="post" id="bulkForm">
+    <form method="post" action="{{ url_for('manage_allowed') }}">
         <table>
             <tr>
-                <th><input type="checkbox" id="select-all"></th>
+                <th><input type="checkbox" id="selectAll"></th>
                 <th>Domain</th>
-                <th>Action</th>
+                <th>Actions</th>
             </tr>
-            {% for domain in allowed_domains %}
+            {% for domain in domains %}
             <tr>
                 <td><input type="checkbox" name="selected_domains" value="{{ domain }}"></td>
                 <td>{{ domain }}</td>
                 <td>
-                    <form action="{{ url_for('remove_allowed_domain') }}" method="post" style="display:inline;">
-                        <input type="hidden" name="domain" value="{{ domain }}">
-                        <button type="submit" class="btn btn-danger">Remove</button>
-                    </form>
+                    <button type="submit" name="action" value="remove:{{ domain }}" class="btn btn-danger">Remove</button>
                 </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3" style="text-align:center; color:#888;">No allowed domains.</td>
             </tr>
             {% endfor %}
         </table>
+        <div class="actions">
+            <input type="text" name="new_domain" placeholder="Add new domain">
+            <button type="submit" name="action" value="add" class="btn btn-primary">Add</button>
+        </div>
     </form>
 </div>
 <script>
-const selectAll = document.getElementById('select-all');
-if (selectAll) {
-    selectAll.onclick = function() {
-        var checkboxes = document.getElementsByName('selected_domains');
-        for (var checkbox of checkboxes) {
-            checkbox.checked = this.checked;
-        }
-        updateBulkButtons();
-    }
-}
-function updateBulkButtons() {
-    var anyChecked = Array.from(document.getElementsByName('selected_domains')).some(cb => cb.checked);
-    document.getElementById('allowSelected').disabled = true; // Not used here
-    document.getElementById('removeSelected').disabled = !anyChecked;
-}
-document.querySelectorAll('input[name="selected_domains"]').forEach(cb => {
-    cb.addEventListener('change', updateBulkButtons);
+document.getElementById('selectAll')?.addEventListener('change', function(e) {
+    document.querySelectorAll('input[name="selected_domains"]').forEach(cb => cb.checked = e.target.checked);
 });
 </script>
-</body>
-</html>
+{% endblock %}
