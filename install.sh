@@ -4,20 +4,29 @@ set -e
 USER="$(whoami)"
 APP_DIR="/opt/squid_allow_app"
 VENV_DIR="$APP_DIR/venv"
+REPO_URL="https://github.com/andrew-kemp/squid_allow_app.git"
 
 echo "Installing dependencies..."
 sudo apt-get update
 sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl
 
-echo "Cloning Flask app..."
+echo "Cloning or updating Flask app repository..."
 if [ ! -d "$APP_DIR" ]; then
-    sudo git clone https://github.com/andrew-kemp/squid_allow_app.git "$APP_DIR"
-    sudo chown -R "$USER":"$USER" "$APP_DIR"
+    sudo git clone "$REPO_URL" "$APP_DIR"
 fi
+sudo chown -R "$USER":"$USER" "$APP_DIR"
 
 cd "$APP_DIR"
 
+echo "Ensuring pam is in requirements.txt..."
+if ! grep -q "^pam" requirements.txt; then
+    echo "pam" >> requirements.txt
+fi
+
 echo "Setting up Python virtual environment..."
+if [ -d "$VENV_DIR" ]; then
+    rm -rf "$VENV_DIR"
+fi
 python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
@@ -157,7 +166,7 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable squid_allow_app
-sudo systemctl start squid_allow_app
+sudo systemctl restart squid_allow_app
 
 echo "All setup complete!"
 echo "Access your app at https://$(hostname -I | awk '{print $1}')/"
