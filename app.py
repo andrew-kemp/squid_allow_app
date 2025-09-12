@@ -112,21 +112,21 @@ def login():
         if p.authenticate(username, password):
             session['logged_in'] = True
             session['username'] = username
-            return redirect(url_for('overview'))
+            return redirect(url_for('index'))
         else:
             flash('Invalid username or password', 'danger')
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST', 'GET'])
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- Main routes ---
+# --- Overview (dashboard) ---
 
-@app.route('/')
+@app.route("/")
 @login_required
-def overview():
+def index():
     allow_list = get_allow_list()
     hidden_list = get_hidden_list()
     blocked_domains = get_blocked_domains()
@@ -136,147 +136,109 @@ def overview():
     unconfirmed = [d for d in blocked_domains 
                    if get_parent_domain(d) not in allow_set and get_parent_domain(d) not in hidden_set]
     return render_template(
-        "overview.html",
+        "index.html",
         allowed_count=len(allow_list),
         blocked_count=len(hidden_list),
         unconfirmed_count=len(unconfirmed),
-        changes_pending=session.get("changes_pending", False),
         page='overview'
     )
 
-@app.route("/index", methods=["GET"])
+# --- Manage Allowed Domains ---
+
+@app.route("/manage_allowed", methods=["GET"])
 @login_required
-def index():
-    blocked_domains = get_blocked_domains()
-    allow_list = set(get_allow_list())
-    hidden_list = set(get_hidden_list())
-
-    display_domains = []
-    for domain in blocked_domains:
-        parent = get_parent_domain(domain)
-        allowed = parent in allow_list
-        hidden = parent in hidden_list
-        if not allowed and not hidden:
-            display_domains.append({
-                "domain": domain,
-                "parent": parent,
-                "allowed": allowed
-            })
-
-    display_domains = sorted(display_domains, key=lambda d: d["domain"].lower())
+def manage_allowed():
+    allowed = sorted(get_allow_list(), key=lambda d: d.lstrip('.').lower())
     return render_template(
-        "index.html",
-        domains=display_domains,
-        changes_pending=session.get("changes_pending", False),
-        page='blocked'
+        "manage_allowed.html",
+        allowed_domains=allowed
     )
 
-@app.route("/add_allow", methods=["POST"])
+@app.route("/add_allowed_domain", methods=["POST"])
 @login_required
-def add_allow():
+def add_allowed_domain():
     domain = request.form.get("domain")
     if domain:
         add_to_allow_list(domain)
         mark_changes_pending()
-    return redirect(url_for("index"))
+    return redirect(url_for("manage_allowed"))
 
-@app.route("/remove_blocked", methods=["POST"])
+@app.route("/remove_allowed_domain", methods=["POST"])
 @login_required
-def remove_blocked():
-    domain = request.form.get("domain")
-    if domain:
-        add_to_hidden_list(domain)
-        mark_changes_pending()
-    return redirect(url_for("index"))
-
-@app.route("/bulk_action", methods=["POST"])
-@login_required
-def bulk_action():
-    action = request.form.get('action')
-    selected = request.form.getlist('selected_domains')
-    referrer = request.referrer or url_for('index')
-    if 'allowed' in referrer:
-        current_page = 'allowed'
-    elif 'removed' in referrer:
-        current_page = 'removed'
-    else:
-        current_page = 'blocked'
-    if not selected:
-        return redirect(referrer)
-
-    if action == 'allow':
-        for domain in selected:
-            add_to_allow_list(domain)
-        mark_changes_pending()
-        return redirect(url_for("allowed"))
-    elif action == 'remove':
-        if current_page == 'allowed':
-            for entry in selected:
-                remove_from_allow_list(entry)
-            mark_changes_pending()
-            return redirect(url_for("allowed"))
-        elif current_page == 'removed':
-            for entry in selected:
-                remove_from_hidden_list(entry)
-            return redirect(url_for("view_removed"))
-        else:  # blocked
-            for domain in selected:
-                add_to_hidden_list(domain)
-            mark_changes_pending()
-            return redirect(url_for("index"))
-
-    return redirect(referrer)
-
-@app.route("/allowed", methods=["GET"])
-@login_required
-def allowed():
-    allow_list = get_allow_list()
-    domains = [{"domain": d} for d in sorted(allow_list, key=lambda d: d.lstrip('.').lower())]
-    return render_template(
-        "allowed.html",
-        domains=domains,
-        changes_pending=session.get("changes_pending", False),
-        page='allowed'
-    )
-
-@app.route("/remove_allow", methods=["POST"])
-@login_required
-def remove_allow():
+def remove_allowed_domain():
     entry = request.form.get("domain") or request.form.get("entry")
     if entry:
         remove_from_allow_list(entry)
         mark_changes_pending()
-    return redirect(url_for("allowed"))
+    return redirect(url_for("manage_allowed"))
 
-@app.route("/view_removed", methods=["GET"])
+# --- Manage Blocked Domains ---
+
+@app.route("/manage_blocked", methods=["GET"])
 @login_required
-def view_removed():
-    hidden_domains = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
-    domains = [{"domain": d} for d in hidden_domains]
+def manage_blocked():
+    blocked = sorted(get_hidden_list(), key=lambda d: d.lstrip('.').lower())
     return render_template(
-        "removed.html",
-        domains=domains,
-        changes_pending=session.get("changes_pending", False),
-        page='removed'
+        "manage_blocked.html",
+        blocked_domains=blocked
     )
 
-@app.route("/restore_domains", methods=["POST"])
+@app.route("/add_blocked_domain", methods=["POST"])
 @login_required
-def restore_domains():
-    selected = request.form.getlist('selected_domains')
-    if not selected:
-        return redirect(url_for('view_removed'))
-    for entry in selected:
-        remove_from_hidden_list(entry)
-    return redirect(url_for('view_removed'))
-
-@app.route("/restore_domain", methods=["POST"])
-@login_required
-def restore_domain():
+def add_blocked_domain():
     domain = request.form.get("domain")
     if domain:
-        remove_from_hidden_list(domain)
-    return redirect(url_for('view_removed'))
+        add_to_hidden_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_blocked"))
+
+@app.route("/remove_blocked_domain", methods=["POST"])
+@login_required
+def remove_blocked_domain():
+    entry = request.form.get("domain") or request.form.get("entry")
+    if entry:
+        remove_from_hidden_list(entry)
+        mark_changes_pending()
+    return redirect(url_for("manage_blocked"))
+
+# --- Manage Unsorted Domains ---
+
+@app.route("/manage_unsorted", methods=["GET"])
+@login_required
+def manage_unsorted():
+    allow_set = set(get_allow_list())
+    hidden_set = set(get_hidden_list())
+    blocked_domains = get_blocked_domains()
+    unsorted = []
+    for domain in blocked_domains:
+        parent = get_parent_domain(domain)
+        if parent not in allow_set and parent not in hidden_set:
+            unsorted.append(domain)
+    unsorted = sorted(set(unsorted), key=lambda d: d.lower())
+    return render_template(
+        "manage_unsorted.html",
+        unsorted_domains=unsorted
+    )
+
+@app.route("/mark_allowed", methods=["POST"])
+@login_required
+def mark_allowed():
+    domain = request.form.get("domain")
+    if domain:
+        add_to_allow_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_unsorted"))
+
+@app.route("/mark_blocked", methods=["POST"])
+@login_required
+def mark_blocked():
+    domain = request.form.get("domain")
+    if domain:
+        add_to_hidden_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_unsorted"))
+
+# --- Squid Restart ---
 
 @app.route("/restart_squid", methods=["POST"])
 @login_required
@@ -288,15 +250,16 @@ def restart_squid():
                 capture_output=True, text=True
             )
             if result.returncode != 0:
-                return jsonify({"status": "error", "message": result.stderr}), 500
+                return jsonify({"status": "Error restarting Squid: " + result.stderr}), 500
             status = subprocess.run(
                 ["/usr/bin/systemctl", "is-active", "squid"],
                 capture_output=True, text=True
             )
             if status.stdout.strip() != "active":
-                return jsonify({"status": "error", "message": status.stdout + status.stderr}), 500
+                return jsonify({"status": "Squid did not start successfully: " + status.stdout + status.stderr}), 500
             clear_changes_pending()
-            return jsonify({"status": "ok"})
+            return jsonify({"status": "Squid restarted successfully."})
+        # fallback for non-AJAX
         result = subprocess.run(
             ["/usr/bin/systemctl", "restart", "squid"],
             capture_output=True, text=True
@@ -310,29 +273,9 @@ def restart_squid():
         if status.stdout.strip() != "active":
             return f"Squid did not start successfully.<br><pre>{status.stdout} {status.stderr}</pre>", 500
         clear_changes_pending()
-        return redirect(request.referrer or url_for("overview"))
+        return redirect(url_for("index"))
     except Exception as e:
         return f"Exception: {e}", 500
-
-@app.route("/clear_changes", methods=["POST"])
-@login_required
-def clear_changes():
-    clear_changes_pending()
-    return redirect(request.referrer or url_for("overview"))
-
-@app.route('/clients')
-@login_required
-def clients():
-    clients = {}
-    if os.path.exists(SQUID_LOG_FILE):
-        with open(SQUID_LOG_FILE, "r") as f:
-            for line in f:
-                parts = line.split()
-                if len(parts) > 2:
-                    ip = parts[2]
-                    domain = parts[6] if len(parts) > 6 else ""
-                    clients.setdefault(ip, []).append(domain)
-    return render_template("clients.html", clients=clients, changes_pending=session.get("changes_pending", False))
 
 # Allow static files without login
 @app.before_request
