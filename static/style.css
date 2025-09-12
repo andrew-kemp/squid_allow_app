@@ -180,3 +180,57 @@ tr:nth-child(even) {
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   font-weight: 500;
 }
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.login-form {
+  background: #fff;
+  padding: 36px 36px 28px 36px;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.10);
+  min-width: 340px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-form h2 {
+  text-align: center;
+  margin-bottom: 18px;
+  color: #223;
+}
+
+.login-form label {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #223;
+}
+
+.login-form input[type="text"],
+.login-form input[type="password"] {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1em;
+  margin-bottom: 10px;
+}
+
+.login-form .btn {
+  margin-top: 12px;
+}
+
+.alert {
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+.alert-danger { background: #fee2e2; color: #b91c1c; }
+.alert-success { background: #bbf7d0; color: #15803d; }
