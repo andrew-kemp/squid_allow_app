@@ -6,9 +6,14 @@ APP_DIR="/opt/paw_proxy_pilot"
 VENV_DIR="$APP_DIR/venv"
 REPO_URL="https://github.com/andrew-kemp/squid_allow_app.git"
 
+# === MySQL DB Settings ===
+DB_NAME="paw_proxy_pilot"
+DB_USER="paw_proxy_pilot_user"
+DB_PASS=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)
+
 echo "Installing dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl
+sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl mysql-server libmysqlclient-dev
 
 echo "Cloning or updating PAW Proxy Pilot repository..."
 if [ ! -d "$APP_DIR" ]; then
@@ -18,19 +23,45 @@ sudo chown -R "$USER":"$USER" "$APP_DIR"
 
 cd "$APP_DIR"
 
-echo "Ensuring pam is in requirements.txt..."
-if ! grep -q "^pam" requirements.txt; then
-    echo "pam" >> requirements.txt
-fi
+echo "Ensuring requirements.txt has all Python dependencies..."
+grep -qxF "pam" requirements.txt || echo "pam" >> requirements.txt
+grep -qxF "pyotp" requirements.txt || echo "pyotp" >> requirements.txt
+grep -qxF "mysql-connector-python" requirements.txt || echo "mysql-connector-python" >> requirements.txt
 
 echo "Setting up Python virtual environment..."
-if [ -d "$VENV_DIR" ]; then
-    rm -rf "$VENV_DIR"
-fi
+rm -rf "$VENV_DIR"
 python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
 pip install -r requirements.txt
+
+echo "Configuring MySQL for PAW Proxy Pilot..."
+
+MYSQL="mysql -u root"
+
+$MYSQL <<SQL
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+USE \`${DB_NAME}\`;
+CREATE TABLE IF NOT EXISTS users (
+    username VARCHAR(64) PRIMARY KEY,
+    mfa_secret VARCHAR(64),
+    mfa_enabled TINYINT DEFAULT 0
+);
+SQL
+
+echo "Writing DB connection info to db_config.py..."
+cat > "$APP_DIR/db_config.py" <<EOF
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "${DB_USER}",
+    "password": "${DB_PASS}",
+    "database": "${DB_NAME}"
+}
+EOF
+chmod 600 "$APP_DIR/db_config.py"
 
 echo "Copying base allow list..."
 sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
@@ -41,60 +72,44 @@ echo ""
 echo "==== Writing Working Squid Configuration ===="
 
 sudo tee /etc/squid/squid.conf > /dev/null <<EOF
-acl localnet src 0.0.0.0-255.255.255.255 # RFC 1122 "this" network (LAN)
-acl localnet src 10.0.0.0/8 # RFC 1918 local private network (LAN)
-acl localnet src 100.64.0.0/10 # RFC 6598 shared address space (CGN)
-acl localnet src 169.254.0.0/16 # RFC 3927 link-local (directly plugged) machines
-acl localnet src 172.16.0.0/12 # RFC 1918 local private network (LAN)
-acl localnet src 192.168.8.0/22 192.168.144.0/20 # RFC 1918 local private network (LAN)
-acl localnet src fc00::/7 # RFC 4193 local private network range
-acl localnet src fe80::/10 # RFC 4291 link-local (directly plugged) machines
+acl localnet src 0.0.0.0-255.255.255.255
+acl localnet src 10.0.0.0/8
+acl localnet src 100.64.0.0/10
+acl localnet src 169.254.0.0/16
+acl localnet src 172.16.0.0/12
+acl localnet src 192.168.8.0/22 192.168.144.0/20
+acl localnet src fc00::/7
+acl localnet src fe80::/10
 
 acl SSL_ports port 443
-acl Safe_ports port 80 # http
-acl Safe_ports port 21 # ftp
-acl Safe_ports port 443 # https
-acl Safe_ports port 70 # gopher
-acl Safe_ports port 210 # wais
-acl Safe_ports port 1025-65535 # unregistered ports
-acl Safe_ports port 280 # http-mgmt
-acl Safe_ports port 488 # gss-http
-acl Safe_ports port 591 # filemaker
-acl Safe_ports port 777 # multiling http
+acl Safe_ports port 80
+acl Safe_ports port 21
+acl Safe_ports port 443
+acl Safe_ports port 70
+acl Safe_ports port 210
+acl Safe_ports port 1025-65535
+acl Safe_ports port 280
+acl Safe_ports port 488
+acl Safe_ports port 591
+acl Safe_ports port 777
 acl PAW_Access dstdomain "/etc/squid/allowed_paw.acl"
 
-# Deny requests to certain unsafe ports
 http_access deny !Safe_ports
-
-# Deny CONNECT to other than secure SSL ports
 http_access deny CONNECT !SSL_ports
-
-# Only allow cachemgr access from localhost
 http_access allow localhost manager
 http_access deny manager
-
 http_access allow localhost
-
 http_access deny to_localhost
-
-# Protect cloud servers that provide local users with sensitive info about
-# their server via certain well-known link-local (a.k.a. APIPA) addresses.
 http_access deny to_linklocal
-
 include /etc/squid/conf.d/*.conf
-
 http_access allow PAW_Access
 http_access deny all
-
-# Squid normally listens to port 3128
 http_port 3128
-
 cache_effective_group proxy
 EOF
 
 echo "New /etc/squid/squid.conf written."
 
-# Deploy custom Squid error page if you have one
 if [ -f ERR_ACCESS_DENIED.html ]; then
     sudo cp ERR_ACCESS_DENIED.html /usr/share/squid/errors/English/ERR_ACCESS_DENIED
 fi
@@ -111,13 +126,9 @@ fi
 
 sudo systemctl restart squid
 
-# ==== END: Use Working Squid Config ====
-
 echo "Setting up sudoers for squid restart..."
 SUDOERS_LINE="$USER ALL=NOPASSWD: /bin/systemctl restart squid"
-if ! sudo grep -q "$SUDOERS_LINE" /etc/sudoers; then
-    echo "$SUDOERS_LINE" | sudo EDITOR='tee -a' visudo > /dev/null
-fi
+sudo grep -qxF "$SUDOERS_LINE" /etc/sudoers || echo "$SUDOERS_LINE" | sudo EDITOR='tee -a' visudo > /dev/null
 
 echo "Generating self-signed SSL cert for nginx..."
 sudo mkdir -p /etc/nginx/ssl
