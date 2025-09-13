@@ -21,8 +21,18 @@
                 <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ qr_uri|urlencode }}&size=180x180" alt="MFA QR Code" style="background:#fff; padding:8px; border-radius:8px;">
             </div>
             <p style="font-size:0.95em; color:#222;">Or enter this code manually:<br><b>{{ secret }}</b></p>
-            <label for="code">Enter the 6-digit code from your app:</label>
-            <input type="text" name="code" id="code" pattern="\\d{6}" required autocomplete="one-time-code">
+            <label for="code">Enter the 6-digit code from your app (no spaces):</label>
+            <input
+                type="text"
+                name="code"
+                id="code"
+                maxlength="6"
+                inputmode="numeric"
+                required
+                autocomplete="one-time-code"
+                placeholder="e.g. 123456"
+                pattern="[0-9]{6}"
+            >
             <button type="submit" class="btn">Activate MFA</button>
         </form>
     </div>
