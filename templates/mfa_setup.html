@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Set Up MFA - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <form method="post" class="login-form">
+            <h2>Set Up MFA</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            <p>Scan this QR code with your authenticator app:</p>
+            <div style="text-align:center; margin: 20px 0;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ qr_uri|urlencode }}&size=180x180" alt="MFA QR Code" style="background:#fff; padding:8px; border-radius:8px;">
+            </div>
+            <p style="font-size:0.95em; color:#222;">Or enter this code manually:<br><b>{{ secret }}</b></p>
+            <label for="code">Enter the 6-digit code from your app:</label>
+            <input type="text" name="code" id="code" pattern="\\d{6}" required autocomplete="one-time-code">
+            <button type="submit" class="btn">Activate MFA</button>
+        </form>
+    </div>
+</body>
+</html>
