@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Verify MFA - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <form method="post" class="login-form">
+            <h2>Verify MFA</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            <label for="code">Enter the 6-digit code from your authenticator app:</label>
+            <input type="text" name="code" id="code" pattern="\\d{6}" required autocomplete="one-time-code">
+            <button type="submit" class="btn">Verify</button>
+        </form>
+    </div>
+</body>
+</html>
