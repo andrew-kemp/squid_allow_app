@@ -163,11 +163,14 @@ def mfa_setup():
     username = session.get('pending_user')
     if not username:
         return redirect(url_for('login'))
-    # Generate a new secret each time until successful setup
     secret = pyotp.random_base32()
     qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
     if request.method == 'POST':
-        code = request.form['code']
+        # Accept code with or without spaces, and only digits
+        code = request.form['code'].replace(" ", "")
+        if not code.isdigit() or len(code) != 6:
+            flash('Invalid code format. Enter a 6-digit code from your authenticator app, without spaces.', 'danger')
+            return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
         if pyotp.TOTP(secret).verify(code):
             set_user_mfa(username, secret)
             session['logged_in'] = True
@@ -187,7 +190,10 @@ def mfa_verify():
     if not secret or not enabled:
         return redirect(url_for('mfa_setup'))
     if request.method == 'POST':
-        code = request.form['code']
+        code = request.form['code'].replace(" ", "")
+        if not code.isdigit() or len(code) != 6:
+            flash('Invalid code format. Enter a 6-digit code from your authenticator app, without spaces.', 'danger')
+            return render_template('mfa_verify.html')
         if pyotp.TOTP(secret).verify(code):
             session['logged_in'] = True
             session['username'] = username
