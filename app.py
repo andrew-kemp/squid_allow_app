@@ -437,5 +437,12 @@ def clear_changes():
     clear_changes_pending()
     return redirect(request.referrer or url_for("index"))
 
+@app.route("/admin")
+@login_required
+def admin():
+    # You can add logic here for admin-only checks if needed
+    return render_template("admin.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
