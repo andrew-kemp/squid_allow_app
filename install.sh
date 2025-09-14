@@ -13,7 +13,7 @@ DB_PASS=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)
 
 echo "Installing system dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl mysql-server libmysqlclient-dev build-essential libpam0g-dev python3-dev
+sudo apt-get install -y python3 python3-pip python3-venv git nginx squid openssl mysql-server libmysqlclient-dev build-essential python3-dev
 
 echo "Cloning or updating PAW Proxy Pilot repository..."
 if [ ! -d "$APP_DIR" ]; then
@@ -24,7 +24,6 @@ sudo chown -R "$USER":"$USER" "$APP_DIR"
 cd "$APP_DIR"
 
 echo "Ensuring requirements.txt has all Python dependencies..."
-grep -qxF "pam" requirements.txt || echo "pam" >> requirements.txt
 grep -qxF "pyotp" requirements.txt || echo "pyotp" >> requirements.txt
 grep -qxF "mysql-connector-python" requirements.txt || echo "mysql-connector-python" >> requirements.txt
 grep -qxF "flask_sqlalchemy" requirements.txt || echo "flask_sqlalchemy" >> requirements.txt
@@ -51,15 +50,15 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 USE \`${DB_NAME}\`;
 
--- Enhanced users table for both PAM and MySQL users + MFA + admin
+-- Users table: MySQL-authenticated only, supports MFA and admin levels.
 CREATE TABLE IF NOT EXISTS users (
-    username VARCHAR(64) PRIMARY KEY,
-    password_hash VARCHAR(128),      -- For MySQL users
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(64) UNIQUE NOT NULL,
+    password VARCHAR(128) NOT NULL,
+    email VARCHAR(255) NOT NULL,
     mfa_secret VARCHAR(64),
     mfa_enabled TINYINT DEFAULT 0,
-    is_local_user TINYINT DEFAULT 0,  -- 1 = MySQL user, 0 = PAM/system user
-    admin_level INT DEFAULT 0,        -- 0 = regular, 1+ = admin
-    email VARCHAR(255)                -- For password recovery, notifications, etc.
+    admin_level INT DEFAULT 0
 );
 
 -- Allowed domains table
