@@ -7,7 +7,6 @@ from datetime import datetime
 import mysql.connector
 import pyotp
 
-# Load DB config
 from db_config import DB_CONFIG
 
 app = Flask(__name__)
@@ -191,7 +190,6 @@ def add_to_allow_list(domain):
     if entry not in current:
         with open(ALLOW_LIST_FILE, "a") as f:
             f.write(entry + "\n")
-    # Also remove from hidden if present
     remove_from_hidden_list(domain)
 
 def remove_from_allow_list(entry):
@@ -249,7 +247,6 @@ def setup():
         if check_user_exists(username):
             flash('Username already exists.', 'danger')
             return render_template('setup.html')
-        # Create user with god rights (admin_level=99)
         add_user(username, email, password, admin_level=99)
         session['pending_user'] = username
         session['pending_admin_level'] = 99
@@ -293,7 +290,6 @@ def login():
         if not user:
             flash('User not found in database', 'danger')
             return render_template('login.html')
-        # MySQL password check
         with get_mysql_conn() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT username FROM users WHERE username=%s AND password=%s", (username, password))
@@ -312,7 +308,6 @@ def login():
 
 @app.route('/mfa_setup', methods=['GET', 'POST'])
 def mfa_setup_route():
-    # For regular users
     username = session.get('pending_user')
     if not username:
         return redirect(url_for('login'))
@@ -667,6 +662,18 @@ def admin_users_reset_mfa(user_id):
     reset_user_mfa(user_id)
     flash('User MFA reset.', 'success')
     return redirect(url_for('admin_users'))
+
+# --- Placeholder admin settings routes ---
+
+@app.route('/admin/email_settings')
+@god_required
+def admin_email_settings():
+    return render_template('admin_email_settings.html')
+
+@app.route('/admin/security_settings')
+@god_required
+def admin_security_settings():
+    return render_template('admin_security_settings.html')
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
