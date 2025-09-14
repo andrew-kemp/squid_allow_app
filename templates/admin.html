@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Admin Panel - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="card" style="min-height:540px; position:relative;">
+        <a href="{{ url_for('index') }}" title="Back to Overview" style="position:absolute;top:20px;left:28px;z-index:2;">
+            <!-- Home/Back Icon SVG -->
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
+                <path d="M10 19a1 1 0 0 1-1-1v-4H6a1 1 0 0 1-1-1v-3.586a1 1 0 0 1 .293-.707l6-6a1 1 0 0 1 1.414 0l6 6A1 1 0 0 1 19 9.414V13a1 1 0 0 1-1 1h-3v4a1 1 0 0 1-1 1h-4Z" fill="#2563eb"/>
+            </svg>
+        </a>
+        <div style="text-align:center; font-weight:700; font-size:1.5em; margin-bottom:10px;">
+            <span style="color:#2563eb;">Admin Panel</span>
+        </div>
+        <div style="text-align:center; color:#6b7280; margin-bottom:24px;">
+            Manage users, roles, and system settings.
+        </div>
+        <div style="max-width:600px; margin:0 auto;">
+            <!-- Example admin actions (replace with actual functionality as needed) -->
+            <ul style="list-style:none; padding:0; font-size:1.1em;">
+                <li style="margin-bottom:18px;">
+                    <a href="#" class="btn" disabled>➕ Add User (coming soon)</a>
+                </li>
+                <li style="margin-bottom:18px;">
+                    <a href="#" class="btn" disabled>👤 Manage Users (coming soon)</a>
+                </li>
+                <li style="margin-bottom:18px;">
+                    <a href="#" class="btn" disabled>✉️ Email Settings (coming soon)</a>
+                </li>
+                <li style="margin-bottom:18px;">
+                    <a href="#" class="btn" disabled>🛡️ Security Settings (coming soon)</a>
+                </li>
+            </ul>
+            <div style="margin-top:48px; text-align:center; color:#bdbdbd;">
+                <em>Admin functions coming soon.<br>
+                Use the gear icon on any page to return here.</em>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
