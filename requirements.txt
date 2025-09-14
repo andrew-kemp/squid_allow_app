@@ -2,5 +2,7 @@ Flask
 publicsuffix2
 pam
 six
+pyotp
+mysql-connector-python
 flask_sqlalchemy
 werkzeug
