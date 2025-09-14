@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reset MFA - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Reset MFA for {{ username }}</h2>
+        <form method="post">
+            <p>Are you sure you want to reset MFA for <strong>{{ username }}</strong>?</p>
+            <button type="submit">Yes, Reset MFA</button>
+        </form>
+        <a href="{{ url_for('admin_users') }}">Back to User Management</a>
+    </div>
+</body>
+</html>
