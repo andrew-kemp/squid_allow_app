@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Management - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>User Management</h2>
+        <a class="button" href="{{ url_for('admin_add_user') }}">Add User</a>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Admin Level</th>
+                    <th>Local/PAM</th>
+                    <th>MFA Enabled</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email or '' }}</td>
+                    <td>{{ user.admin_level }}</td>
+                    <td>{{ 'Local' if user.is_local_user else 'PAM' }}</td>
+                    <td>{{ 'Yes' if user.mfa_enabled else 'No' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_reset_password', username=user.username) }}">Reset Password</a>
+                        {% if user.mfa_enabled %}
+                            | <a href="{{ url_for('admin_reset_mfa', username=user.username) }}">Reset MFA</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
