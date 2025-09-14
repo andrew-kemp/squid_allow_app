@@ -52,8 +52,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(128),      -- For MySQL users
     mfa_secret VARCHAR(64),
     mfa_enabled TINYINT DEFAULT 0,
-    is_local_user TINYINT DEFAULT 0  -- 1 = MySQL user, 0 = PAM/system user
+    is_local_user TINYINT DEFAULT 0,  -- 1 = MySQL user, 0 = PAM/system user
+    email VARCHAR(255)                -- For password recovery, notifications, etc.
 );
+
 
 -- Allowed domains table
 CREATE TABLE IF NOT EXISTS allowed_domains (
