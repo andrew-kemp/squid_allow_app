@@ -163,23 +163,35 @@ def mfa_setup():
     username = session.get('pending_user')
     if not username:
         return redirect(url_for('login'))
-    secret = pyotp.random_base32()
-    qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
+
     if request.method == 'POST':
-        # Accept code with or without spaces, and only digits
+        # Retrieve the secret from session
+        secret = session.get('mfa_secret')
+        if not secret:
+            flash('Session expired. Please try again.', 'danger')
+            return redirect(url_for('login'))
         code = request.form['code'].replace(" ", "")
         if not code.isdigit() or len(code) != 6:
             flash('Invalid code format. Enter a 6-digit code from your authenticator app, without spaces.', 'danger')
+            qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
             return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
         if pyotp.TOTP(secret).verify(code):
             set_user_mfa(username, secret)
             session['logged_in'] = True
             session['username'] = username
             session.pop('pending_user', None)
+            session.pop('mfa_secret', None)
             return redirect(url_for('index'))
         else:
             flash('Invalid MFA code, try again.', 'danger')
-    return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
+            qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
+            return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
+    else:
+        # First load: generate secret and store it in session
+        secret = pyotp.random_base32()
+        session['mfa_secret'] = secret
+        qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
+        return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
 
 @app.route('/mfa_verify', methods=['GET', 'POST'])
 def mfa_verify():
