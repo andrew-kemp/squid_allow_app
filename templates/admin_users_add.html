@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add User - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Add New User</h2>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username" required>
+
+            <label for="email">Email (optional):</label>
+            <input type="email" name="email" id="email">
+
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required>
+
+            <label for="admin_level">Admin Level:</label>
+            <select name="admin_level" id="admin_level">
+                <option value="0">User</option>
+                <option value="1">Admin</option>
+            </select>
+
+            <label for="is_local_user">Authentication Type:</label>
+            <select name="is_local_user" id="is_local_user">
+                <option value="1">Local (DB)</option>
+                <option value="0">PAM</option>
+            </select>
+
+            <button type="submit">Add User</button>
+        </form>
+        <a href="{{ url_for('admin_users') }}">Back to User Management</a>
+    </div>
+</body>
+</html>
