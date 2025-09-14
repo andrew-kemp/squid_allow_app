@@ -2,7 +2,6 @@ import os
 import subprocess
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from publicsuffix2 import get_sld
-import pam
 from functools import wraps
 from datetime import datetime
 import mysql.connector
@@ -101,6 +100,9 @@ def is_logged_in():
 def is_admin():
     return session.get('admin_level', 0) > 0
 
+def is_god():
+    return session.get('admin_level', 0) == 99
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -117,6 +119,28 @@ def admin_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def god_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_logged_in() or not is_god():
+            flash('God-level admin required', 'danger')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- Enforce initial setup if no users exist ---
+@app.before_request
+def enforce_first_user_setup():
+    if request.endpoint in ['static', 'setup', 'setup_mfa']:
+        return
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        (user_count,) = cursor.fetchone()
+        if user_count == 0:
+            if request.endpoint != 'setup' and not request.path.startswith('/setup'):
+                return redirect(url_for('setup'))
 
 # --- Allow static files without login ---
 @app.before_request
@@ -200,32 +224,95 @@ def mark_changes_pending():
 def clear_changes_pending():
     session.pop("changes_pending", None)
 
-# --- MFA routes ---
+# --- Initial Setup Wizard ---
+
+@app.route('/setup', methods=['GET', 'POST'])
+def setup():
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        (user_count,) = cursor.fetchone()
+        if user_count > 0:
+            return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password']
+        password2 = request.form['password2']
+        email = request.form['email'].strip()
+        if not username or not password or not password2 or not email:
+            flash('All fields are required.', 'danger')
+            return render_template('setup.html')
+        if password != password2:
+            flash('Passwords do not match.', 'danger')
+            return render_template('setup.html')
+        if check_user_exists(username):
+            flash('Username already exists.', 'danger')
+            return render_template('setup.html')
+        # Create user with god rights (admin_level=99)
+        add_user(username, email, password, admin_level=99)
+        session['pending_user'] = username
+        session['pending_admin_level'] = 99
+        return redirect(url_for('setup_mfa'))
+
+    return render_template('setup.html')
+
+@app.route('/setup_mfa', methods=['GET', 'POST'])
+def setup_mfa():
+    username = session.get('pending_user')
+    if not username:
+        return redirect(url_for('login'))
+    secret = session.get('mfa_secret')
+    if not secret:
+        secret = pyotp.random_base32()
+        session['mfa_secret'] = secret
+    qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
+    if request.method == 'POST':
+        code = request.form['code'].replace(" ", "")
+        if not code.isdigit() or len(code) != 6 or not pyotp.TOTP(secret).verify(code):
+            flash('Invalid MFA code. Try again.', 'danger')
+            return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
+        set_user_mfa(username, secret)
+        user = get_user(username)
+        session.clear()
+        session['logged_in'] = True
+        session['username'] = username
+        session['admin_level'] = user.get('admin_level', 0)
+        flash('Setup complete! You are now logged in.', 'success')
+        return redirect(url_for('index'))
+    return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
+
+# --- MFA routes (for regular users) ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        p = pam.pam()
-        if p.authenticate(username, password):
-            user = get_user(username)
-            if not user:
-                flash('User not found in database', 'danger')
-                return render_template('login.html')
-            secret, enabled = get_user_mfa(username)
-            session['pending_user'] = username
-            session['pending_admin_level'] = user.get('admin_level', 0)
-            if not secret or not enabled:
-                return redirect(url_for('mfa_setup'))
-            else:
-                return redirect(url_for('mfa_verify'))
-        else:
+        user = get_user(username)
+        if not user:
+            flash('User not found in database', 'danger')
+            return render_template('login.html')
+        # MySQL password check (PAM login removed for now)
+        with get_mysql_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT username FROM users WHERE username=%s AND password=PASSWORD(%s)", (username, password))
+            authed = cursor.fetchone() is not None
+        if not authed:
             flash('Invalid username or password', 'danger')
+            return render_template('login.html')
+        secret, enabled = get_user_mfa(username)
+        session['pending_user'] = username
+        session['pending_admin_level'] = user.get('admin_level', 0)
+        if not secret or not enabled:
+            return redirect(url_for('mfa_setup'))
+        else:
+            return redirect(url_for('mfa_verify'))
     return render_template('login.html')
 
 @app.route('/mfa_setup', methods=['GET', 'POST'])
-def mfa_setup():
+def mfa_setup_route():
+    # For regular users
     username = session.get('pending_user')
     if not username:
         return redirect(url_for('login'))
@@ -506,7 +593,6 @@ def clear_changes():
 @app.route("/admin")
 @login_required
 def admin():
-    # You can add logic here for admin-only checks if needed
     return render_template("admin.html")
 
 # --- User management (ADMIN ONLY) ---
@@ -518,7 +604,7 @@ def admin_users():
     return render_template('admin_users.html', users=users)
 
 @app.route('/admin/users/add', methods=['GET', 'POST'])
-@admin_required
+@god_required
 def admin_users_add():
     if request.method == 'POST':
         username = request.form['username'].strip()
@@ -537,13 +623,12 @@ def admin_users_add():
     return render_template('admin_users_add.html')
 
 @app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
-@admin_required
+@god_required
 def admin_users_delete(user_id):
     user = get_user_by_id(user_id)
     if not user:
         flash("User not found.", "danger")
         return redirect(url_for('admin_users'))
-    # Don't let admin delete themselves
     if session.get("username") == user.get('username'):
         flash("You cannot delete yourself.", "danger")
         return redirect(url_for('admin_users'))
@@ -569,7 +654,7 @@ def admin_users_reset_password(user_id):
     return render_template('admin_users_reset_password.html', user=user)
 
 @app.route('/admin/users/<int:user_id>/set_admin_level', methods=['POST'])
-@admin_required
+@god_required
 def admin_users_set_admin_level(user_id):
     admin_level = int(request.form.get('admin_level', 0))
     set_user_admin_level(user_id, admin_level)
