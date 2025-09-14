@@ -2,3 +2,5 @@ Flask
 publicsuffix2
 pam
 six
+flask_sqlalchemy
+werkzeug
