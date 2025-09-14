@@ -20,24 +20,25 @@
             Manage users, roles, and system settings.
         </div>
         <div style="max-width:600px; margin:0 auto;">
-            <!-- Example admin actions (replace with actual functionality as needed) -->
             <ul style="list-style:none; padding:0; font-size:1.1em;">
                 <li style="margin-bottom:18px;">
-                    <a href="#" class="btn" disabled>➕ Add User (coming soon)</a>
+                    <a href="{{ url_for('admin_add_user') }}" class="btn">➕ Add User</a>
                 </li>
                 <li style="margin-bottom:18px;">
-                    <a href="#" class="btn" disabled>👤 Manage Users (coming soon)</a>
+                    <a href="{{ url_for('admin_users') }}" class="btn">👤 Manage Users</a>
                 </li>
                 <li style="margin-bottom:18px;">
-                    <a href="#" class="btn" disabled>✉️ Email Settings (coming soon)</a>
+                    <a href="{{ url_for('admin_email_settings') }}" class="btn">✉️ Email Settings</a>
                 </li>
                 <li style="margin-bottom:18px;">
-                    <a href="#" class="btn" disabled>🛡️ Security Settings (coming soon)</a>
+                    <a href="{{ url_for('admin_security_settings') }}" class="btn">🛡️ Security Settings</a>
                 </li>
             </ul>
             <div style="margin-top:48px; text-align:center; color:#bdbdbd;">
-                <em>Admin functions coming soon.<br>
-                Use the gear icon on any page to return here.</em>
+                <em>
+                    Use the gear icon on any page to return here.<br>
+                    More admin functions coming soon.
+                </em>
             </div>
         </div>
     </div>
