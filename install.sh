@@ -45,10 +45,32 @@ CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 USE \`${DB_NAME}\`;
+
+-- Enhanced users table for both PAM and MySQL users + MFA
 CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(64) PRIMARY KEY,
+    password_hash VARCHAR(128),      -- For MySQL users
     mfa_secret VARCHAR(64),
-    mfa_enabled TINYINT DEFAULT 0
+    mfa_enabled TINYINT DEFAULT 0,
+    is_local_user TINYINT DEFAULT 0  -- 1 = MySQL user, 0 = PAM/system user
+);
+
+-- Allowed domains table
+CREATE TABLE IF NOT EXISTS allowed_domains (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL
+);
+
+-- Blocked domains table
+CREATE TABLE IF NOT EXISTS blocked_domains (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL
+);
+
+-- Optionally, unconfirmed domains table (if you want to track them separately)
+CREATE TABLE IF NOT EXISTS unconfirmed_domains (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    domain VARCHAR(255) NOT NULL
 );
 SQL
 
