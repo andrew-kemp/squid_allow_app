@@ -23,18 +23,69 @@ HIDDEN_LIST_FILE = "/etc/squid/hidden_domains.txt"
 def get_mysql_conn():
     return mysql.connector.connect(**DB_CONFIG)
 
+def get_user(username):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+        return cursor.fetchone()
+
+def get_user_by_id(user_id):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+        return cursor.fetchone()
+
+def get_all_users():
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users")
+        return cursor.fetchall()
+
+def add_user(username, email, password, admin_level=0):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO users (username, email, password, admin_level, mfa_enabled) VALUES (%s, %s, PASSWORD(%s), %s, 0)",
+            (username, email, password, admin_level)
+        )
+        conn.commit()
+
+def delete_user(user_id):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        conn.commit()
+
+def set_user_password(user_id, password):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password=PASSWORD(%s) WHERE id=%s", (password, user_id))
+        conn.commit()
+
+def set_user_admin_level(user_id, admin_level):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET admin_level=%s WHERE id=%s", (admin_level, user_id))
+        conn.commit()
+
+def reset_user_mfa(user_id):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET mfa_secret=NULL, mfa_enabled=0 WHERE id=%s", (user_id,))
+        conn.commit()
+
+def set_user_mfa(username, secret):
+    with get_mysql_conn() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET mfa_secret=%s, mfa_enabled=1 WHERE username=%s", (secret, username))
+        conn.commit()
+
 def get_user_mfa(username):
     with get_mysql_conn() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT mfa_secret, mfa_enabled FROM users WHERE username=%s", (username,))
         row = cursor.fetchone()
         return row if row else (None, 0)
-
-def set_user_mfa(username, secret):
-    with get_mysql_conn() as conn:
-        cursor = conn.cursor()
-        cursor.execute("REPLACE INTO users (username, mfa_secret, mfa_enabled) VALUES (%s, %s, 1)", (username, secret))
-        conn.commit()
 
 def check_user_exists(username):
     with get_mysql_conn() as conn:
@@ -47,10 +98,22 @@ def check_user_exists(username):
 def is_logged_in():
     return session.get('logged_in', False)
 
+def is_admin():
+    return session.get('admin_level', 0) > 0
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_logged_in():
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_logged_in() or not is_admin():
+            flash('Admin access required', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -146,13 +209,16 @@ def login():
         password = request.form['password']
         p = pam.pam()
         if p.authenticate(username, password):
+            user = get_user(username)
+            if not user:
+                flash('User not found in database', 'danger')
+                return render_template('login.html')
             secret, enabled = get_user_mfa(username)
             session['pending_user'] = username
+            session['pending_admin_level'] = user.get('admin_level', 0)
             if not secret or not enabled:
-                # Trigger MFA setup
                 return redirect(url_for('mfa_setup'))
             else:
-                # Already set up, prompt for TOTP
                 return redirect(url_for('mfa_verify'))
         else:
             flash('Invalid username or password', 'danger')
@@ -165,7 +231,6 @@ def mfa_setup():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        # Retrieve the secret from session
         secret = session.get('mfa_secret')
         if not secret:
             flash('Session expired. Please try again.', 'danger')
@@ -179,6 +244,7 @@ def mfa_setup():
             set_user_mfa(username, secret)
             session['logged_in'] = True
             session['username'] = username
+            session['admin_level'] = session.pop('pending_admin_level', 0)
             session.pop('pending_user', None)
             session.pop('mfa_secret', None)
             return redirect(url_for('index'))
@@ -187,7 +253,6 @@ def mfa_setup():
             qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
             return render_template('mfa_setup.html', secret=secret, qr_uri=qr_uri)
     else:
-        # First load: generate secret and store it in session
         secret = pyotp.random_base32()
         session['mfa_secret'] = secret
         qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(username, issuer_name="PAW Proxy Pilot")
@@ -209,6 +274,7 @@ def mfa_verify():
         if pyotp.TOTP(secret).verify(code):
             session['logged_in'] = True
             session['username'] = username
+            session['admin_level'] = session.pop('pending_admin_level', 0)
             session.pop('pending_user', None)
             return redirect(url_for('index'))
         else:
@@ -443,6 +509,79 @@ def admin():
     # You can add logic here for admin-only checks if needed
     return render_template("admin.html")
 
+# --- User management (ADMIN ONLY) ---
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    users = get_all_users()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@admin_required
+def admin_users_add():
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        email = request.form['email'].strip()
+        password = request.form['password']
+        admin_level = int(request.form.get('admin_level', 0))
+        if not username or not email or not password:
+            flash('All fields are required.', 'danger')
+            return redirect(url_for('admin_users_add'))
+        if check_user_exists(username):
+            flash('Username already exists.', 'danger')
+            return redirect(url_for('admin_users_add'))
+        add_user(username, email, password, admin_level)
+        flash('User added.', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('admin_users_add.html')
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def admin_users_delete(user_id):
+    user = get_user_by_id(user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for('admin_users'))
+    # Don't let admin delete themselves
+    if session.get("username") == user.get('username'):
+        flash("You cannot delete yourself.", "danger")
+        return redirect(url_for('admin_users'))
+    delete_user(user_id)
+    flash("User deleted.", "success")
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/reset_password', methods=['GET', 'POST'])
+@admin_required
+def admin_users_reset_password(user_id):
+    user = get_user_by_id(user_id)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_users'))
+    if request.method == 'POST':
+        password = request.form['password']
+        if not password:
+            flash('Password required.', 'danger')
+            return redirect(url_for('admin_users_reset_password', user_id=user_id))
+        set_user_password(user_id, password)
+        flash('Password reset.', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('admin_users_reset_password.html', user=user)
+
+@app.route('/admin/users/<int:user_id>/set_admin_level', methods=['POST'])
+@admin_required
+def admin_users_set_admin_level(user_id):
+    admin_level = int(request.form.get('admin_level', 0))
+    set_user_admin_level(user_id, admin_level)
+    flash('Admin level updated.', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/reset_mfa', methods=['POST'])
+@admin_required
+def admin_users_reset_mfa(user_id):
+    reset_user_mfa(user_id)
+    flash('User MFA reset.', 'success')
+    return redirect(url_for('admin_users'))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
