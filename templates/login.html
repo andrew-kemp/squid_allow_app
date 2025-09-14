@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Login - PAW Proxy Pilot</title>
+    <meta charset="UTF-8">
+    <title>PAW Proxy Pilot - Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="login-container">
-        <form method="post" class="login-form">
-            <h2>Login</h2>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
+    <div class="container">
+        <h2>Login</h2>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('login') }}">
             <label for="username">Username:</label>
             <input type="text" name="username" id="username" required autofocus>
+
             <label for="password">Password:</label>
             <input type="password" name="password" id="password" required>
-            <button type="submit" class="btn">Login</button>
+
+            {% if mfa_required %}
+                <label for="mfa_code">MFA Code:</label>
+                <input type="text" name="mfa_code" id="mfa_code" required>
+            {% endif %}
+
+            <button type="submit">Login</button>
         </form>
     </div>
 </body>
