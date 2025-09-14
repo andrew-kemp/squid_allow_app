@@ -11,9 +11,9 @@ DB_NAME="paw_proxy_pilot"
 DB_USER="paw_proxy_pilot_user"
 DB_PASS=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)
 
-echo "Installing dependencies..."
+echo "Installing system dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl mysql-server libmysqlclient-dev
+sudo apt-get install -y python3 python3-pip python3-venv python3-pam git nginx squid openssl mysql-server libmysqlclient-dev build-essential libpam0g-dev python3-dev
 
 echo "Cloning or updating PAW Proxy Pilot repository..."
 if [ ! -d "$APP_DIR" ]; then
@@ -27,6 +27,11 @@ echo "Ensuring requirements.txt has all Python dependencies..."
 grep -qxF "pam" requirements.txt || echo "pam" >> requirements.txt
 grep -qxF "pyotp" requirements.txt || echo "pyotp" >> requirements.txt
 grep -qxF "mysql-connector-python" requirements.txt || echo "mysql-connector-python" >> requirements.txt
+grep -qxF "flask_sqlalchemy" requirements.txt || echo "flask_sqlalchemy" >> requirements.txt
+grep -qxF "werkzeug" requirements.txt || echo "werkzeug" >> requirements.txt
+grep -qxF "publicsuffix2" requirements.txt || echo "publicsuffix2" >> requirements.txt
+grep -qxF "six" requirements.txt || echo "six" >> requirements.txt
+grep -qxF "Flask" requirements.txt || echo "Flask" >> requirements.txt
 
 echo "Setting up Python virtual environment..."
 rm -rf "$VENV_DIR"
@@ -46,16 +51,16 @@ GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 USE \`${DB_NAME}\`;
 
--- Enhanced users table for both PAM and MySQL users + MFA
+-- Enhanced users table for both PAM and MySQL users + MFA + admin
 CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(64) PRIMARY KEY,
     password_hash VARCHAR(128),      -- For MySQL users
     mfa_secret VARCHAR(64),
     mfa_enabled TINYINT DEFAULT 0,
     is_local_user TINYINT DEFAULT 0,  -- 1 = MySQL user, 0 = PAM/system user
+    admin_level INT DEFAULT 0,        -- 0 = regular, 1+ = admin
     email VARCHAR(255)                -- For password recovery, notifications, etc.
 );
-
 
 -- Allowed domains table
 CREATE TABLE IF NOT EXISTS allowed_domains (
@@ -88,7 +93,7 @@ EOF
 chmod 600 "$APP_DIR/db_config.py"
 
 echo "Copying base allow list..."
-sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl
+sudo cp "$APP_DIR/allowed_paw.acl" /etc/squid/allowed_paw.acl || touch /etc/squid/allowed_paw.acl
 sudo chmod 666 /etc/squid/allowed_paw.acl
 
 # ==== BEGIN: Use Working Squid Config ====
