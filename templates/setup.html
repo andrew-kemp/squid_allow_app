@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="card" style="max-width: 400px; margin: 60px auto; padding: 2.5em 2em;">
+        <h1 style="text-align:center; font-size:2em; font-weight:700; margin-bottom:1.5em;">Login</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flashes" style="color:#b91c1c; text-align:center; list-style:none; padding:0; margin-bottom:1em;">
+              {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+        <form method="post" style="display:flex; flex-direction:column; gap:1.3em;">
+            <div>
+                <label for="username" style="font-size:1.1em; font-weight:600;">Username:</label>
+                <input type="text" name="username" id="username" required autofocus style="width:100%;">
+            </div>
+            <div>
+                <label for="password" style="font-size:1.1em; font-weight:600;">Password:</label>
+                <input type="password" name="password" id="password" required style="width:100%;">
+            </div>
+            <button type="submit" class="btn" style="width:100%; font-size:1.1em;">Login</button>
+        </form>
+    </div>
+</body>
+</html>
