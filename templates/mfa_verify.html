@@ -17,7 +17,16 @@
               {% endif %}
             {% endwith %}
             <label for="code">Enter the 6-digit code from your authenticator app:</label>
-            <input type="text" name="code" id="code" pattern="\\d{6}" required autocomplete="one-time-code">
+            <input
+                type="text"
+                name="code"
+                id="code"
+                maxlength="6"
+                inputmode="numeric"
+                required
+                autocomplete="one-time-code"
+                placeholder="e.g. 123456"
+            >
             <button type="submit" class="btn">Verify</button>
         </form>
     </div>
