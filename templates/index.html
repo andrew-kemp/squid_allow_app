@@ -37,67 +37,68 @@
   };
   </script>
   {% endif %}
-        <div class="card" style="min-height:540px; position:relative;">
-        <a href="{{ url_for('admin') }}" title="Admin Panel"
-           style="position:absolute;top:20px;right:28px;z-index:2;display:inline-block;text-decoration:none;">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="#6b7280">
-            <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Zm7.43-2.52.02-.23c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l-.02-.23 2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.7-.99l-.38-2.65A.5.5 0 0 0 12 2h-0a.5.5 0 0 0-.5.42l-.38 2.65c-.6.23-1.17.53-1.7.99l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65-.02.23c-.04.32-.07.65-.07.98s.03.66.07.98l.02.23-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .61.22l2.49-1c.52.46 1.09.76 1.7.99l.38 2.65A.5.5 0 0 0 12 22h0a.5.5 0 0 0 .5-.42l.38-2.65c.6-.23 1.17-.53 1.7-.99l2.49 1a.5.5 0 0 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65Z"/>
-          </svg>
-        </a>
-        <div style="text-align:center; font-weight:700; font-size:1.5em; margin-bottom:10px;">
-          <span style="color:#2563eb;">PAW Proxy Pilot</span>
-        </div>
-        <div style="text-align:center; color:#6b7280; margin-bottom:24px;">
-          Privileged Access Web Proxy Management
-        </div>
-        <h2>Overview</h2>
-        {% include '_actions_button.html' %}
+  <div class="card" style="min-height:540px; position:relative;">
+    {% if session.admin_level == 99 %}
+    <a href="{{ url_for('admin') }}" title="Admin Panel"
+       style="position:absolute;top:20px;right:28px;z-index:2;display:inline-block;text-decoration:none;">
+      <!-- Use cog.png from static if you have one, fallback to SVG otherwise -->
+      <img src="{{ url_for('static', filename='cog.png') }}" alt="Admin" width="32" height="32" style="vertical-align:middle;"/>
+    </a>
+    {% endif %}
+    <div style="text-align:center; font-weight:700; font-size:1.5em; margin-bottom:10px;">
+      <span style="color:#2563eb;">PAW Proxy Pilot</span>
+    </div>
+    <div style="text-align:center; color:#6b7280; margin-bottom:24px;">
+      Privileged Access Web Proxy Management
+    </div>
+    <h2>Overview</h2>
+    {% include '_actions_button.html' %}
+    <table>
+        <tr>
+            <th>Status</th>
+            <th>Domains</th>
+            <th>Action</th>
+        </tr>
+        <tr>
+            <td>Domains Allowed</td>
+            <td class="count">{{ allowed_count }}</td>
+            <td>
+              <a href="{{ url_for('manage_allowed') }}" class="btn">Manage</a>
+            </td>
+        </tr>
+        <tr>
+            <td>Domains Confirmed to Block</td>
+            <td class="count">{{ blocked_count }}</td>
+            <td>
+              <a href="{{ url_for('manage_blocked') }}" class="btn">Manage</a>
+            </td>
+        </tr>
+        <tr>
+            <td>Domains Unconfirmed</td>
+            <td class="count">{{ unconfirmed_count }}</td>
+            <td>
+              <a href="{{ url_for('manage_unsorted') }}" class="btn">Manage</a>
+            </td>
+        </tr>
+    </table>
+    {% if clients %}
+    <div style="margin-top:32px;">
+        <h3>Client Overview</h3>
         <table>
             <tr>
-                <th>Status</th>
-                <th>Domains</th>
-                <th>Action</th>
+                <th>Client IP</th>
+                <th>Last Connected</th>
             </tr>
+            {% for ip, last_connected in clients.items() %}
             <tr>
-                <td>Domains Allowed</td>
-                <td class="count">{{ allowed_count }}</td>
-                <td>
-                  <a href="{{ url_for('manage_allowed') }}" class="btn">Manage</a>
-                </td>
+                <td>{{ ip }}</td>
+                <td>{{ last_connected }}</td>
             </tr>
-            <tr>
-                <td>Domains Confirmed to Block</td>
-                <td class="count">{{ blocked_count }}</td>
-                <td>
-                  <a href="{{ url_for('manage_blocked') }}" class="btn">Manage</a>
-                </td>
-            </tr>
-            <tr>
-                <td>Domains Unconfirmed</td>
-                <td class="count">{{ unconfirmed_count }}</td>
-                <td>
-                  <a href="{{ url_for('manage_unsorted') }}" class="btn">Manage</a>
-                </td>
-            </tr>
+            {% endfor %}
         </table>
-        {% if clients %}
-        <div style="margin-top:32px;">
-            <h3>Client Overview</h3>
-            <table>
-                <tr>
-                    <th>Client IP</th>
-                    <th>Last Connected</th>
-                </tr>
-                {% for ip, last_connected in clients.items() %}
-                <tr>
-                    <td>{{ ip }}</td>
-                    <td>{{ last_connected }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-        {% endif %}
-        {% include '_floating_buttons.html' %}
+    </div>
+    {% endif %}
+    {% include '_floating_buttons.html' %}
   </div>
 </body>
 </html>
