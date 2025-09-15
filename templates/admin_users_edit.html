@@ -2,30 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Add User - PAW Proxy Pilot</title>
+    <title>Edit User - PAW Proxy Pilot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <div class="card" style="max-width:440px;">
-    <h2>Add User</h2>
+    <h2>Edit User</h2>
     <form method="post">
-        <label for="username">Username</label>
-        <input type="text" name="username" id="username" required>
         <label for="email">Email</label>
-        <input type="email" name="email" id="email" required>
-        <label for="password">Password</label>
-        <input type="password" name="password" id="password" required>
+        <input type="email" name="email" id="email" required value="{{ user.email }}">
         <label for="admin_level">Admin Level</label>
         <select name="admin_level" id="admin_level" required>
-            <option value="0">User</option>
+            <option value="0" {% if user.admin_level == 0 %}selected{% endif %}>User</option>
             {% if session.admin_level == 99 %}
-            <option value="1">User Admin</option>
-            <option value="99">God Admin</option>
+            <option value="1" {% if user.admin_level == 1 %}selected{% endif %}>User Admin</option>
+            <option value="99" {% if user.admin_level == 99 %}selected{% endif %}>God Admin</option>
             {% elif session.admin_level > 0 %}
-            <option value="1">User Admin</option>
+            <option value="1" {% if user.admin_level == 1 %}selected{% endif %}>User Admin</option>
             {% endif %}
         </select>
-        <button type="submit" class="btn btn-success" style="width:100%;margin-top:14px;">Add User</button>
+        <button type="submit" class="btn btn-success" style="width:100%;margin-top:14px;">Update User</button>
     </form>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

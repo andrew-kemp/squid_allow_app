@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Login Audit - PAW Proxy Pilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="card">
+    <h2>Login Audit</h2>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Time</th>
+            <th>IP Address</th>
+            <th>Status</th>
+        </tr>
+        {% for entry in audit %}
+        <tr>
+            <td>{{ entry.username }}</td>
+            <td>{{ entry.time }}</td>
+            <td>{{ entry.ip }}</td>
+            <td>{{ entry.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Back to Manage Users</a>
+</div>
+</body>
+</html>

@@ -19,19 +19,38 @@
         <div style="text-align:center; color:#6b7280; margin-bottom:24px;">
             Manage users, roles, and system settings.
         </div>
-        <div style="max-width:600px; margin:0 auto;">
-            <ul style="list-style:none; padding:0; font-size:1.1em;">
-                <li style="margin-bottom:18px;">
-                    <a href="{{ url_for('admin_users_add') }}" class="btn">➕ Add User</a>
+        <div style="max-width:440px; margin:0 auto;">
+            <ul style="list-style:none; padding:0; font-size:1.1em; display:flex; flex-direction:column; gap:14px;">
+                {% if session.admin_level >= 1 %}
+                <li>
+                    <a href="{{ url_for('admin_users_add') }}" class="btn" style="width:100%;text-align:left;">
+                        ➕ Add User
+                    </a>
                 </li>
-                <li style="margin-bottom:18px;">
-                    <a href="{{ url_for('admin_users') }}" class="btn">👤 Manage Users</a>
+                <li>
+                    <a href="{{ url_for('admin_users') }}" class="btn" style="width:100%;text-align:left;">
+                        👤 Manage Users
+                    </a>
                 </li>
-                <li style="margin-bottom:18px;">
-                    <a href="{{ url_for('admin_email_settings') }}" class="btn">✉️ Email Settings</a>
+                {% endif %}
+                {% if session.admin_level >= 1 %}
+                <li>
+                    <a href="{{ url_for('admin_email_settings') }}" class="btn" style="width:100%;text-align:left;">
+                        ✉️ Email Settings
+                    </a>
                 </li>
-                <li style="margin-bottom:18px;">
-                    <a href="{{ url_for('admin_security_settings') }}" class="btn">🛡️ Security Settings</a>
+                {% endif %}
+                {% if session.admin_level == 99 %}
+                <li>
+                    <a href="{{ url_for('admin_security_settings') }}" class="btn" style="width:100%;text-align:left;">
+                        🛡️ Security Settings
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('admin_change_password') }}" class="btn" style="width:100%;text-align:left;">
+                        🔒 Change Password
+                    </a>
                 </li>
             </ul>
             <div style="margin-top:48px; text-align:center; color:#bdbdbd;">
