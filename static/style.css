@@ -180,56 +180,72 @@ tr:nth-child(even) {
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   font-weight: 500;
 }
+
+/* --- LOGIN FORM STYLES --- */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
+  min-height: 90vh;
 }
 
 .login-form {
   background: #fff;
   padding: 36px 36px 28px 36px;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.10);
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.11);
   min-width: 340px;
   max-width: 400px;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .login-form h2 {
   text-align: center;
   margin-bottom: 18px;
   color: #223;
+  font-size: 2em;
+  font-weight: 700;
 }
 
 .login-form label {
   font-weight: 500;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: #223;
 }
 
 .login-form input[type="text"],
 .login-form input[type="password"] {
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 1em;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  background: #f6f7fb;
+  transition: border 0.2s;
+}
+
+.login-form input[type="text"]:focus,
+.login-form input[type="password"]:focus {
+  border: 1.5px solid #2563eb;
+  background: #fff;
 }
 
 .login-form .btn {
-  margin-top: 12px;
+  margin-top: 10px;
+  width: 100%;
+  font-size: 1.1em;
 }
 
 .alert {
   border-radius: 6px;
   padding: 10px 16px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-weight: 500;
   font-size: 1em;
+  text-align: center;
 }
 
 .alert-danger { background: #fee2e2; color: #b91c1c; }
