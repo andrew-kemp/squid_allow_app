@@ -530,12 +530,9 @@ def admin_login_audit():
     ]
     return render_template('admin_login_audit.html', audit=audit)
 
-# --- Placeholder admin settings routes ---
-
 @app.route('/admin/email_settings')
 @login_required
 def admin_email_settings():
-    # Only admins (1+) and god (99) can see
     if session.get('admin_level', 0) < 1:
         flash("Insufficient permission", "danger")
         return redirect(url_for('admin'))
@@ -544,7 +541,6 @@ def admin_email_settings():
 @app.route('/admin/security_settings')
 @login_required
 def admin_security_settings():
-    # Only god admin
     if session.get('admin_level', 0) != 99:
         flash("Insufficient permission", "danger")
         return redirect(url_for('admin'))
@@ -555,9 +551,84 @@ def admin_security_settings():
 def admin():
     return render_template("admin.html")
 
-# --- (Domain and Squid management routes unchanged) ---
+# --- Allowed/Blocked/Unsorted Management ---
 
-# ... (Put your existing routes for manage_allowed, manage_blocked, etc. here)
+@app.route("/manage_allowed", methods=["GET", "POST"])
+@login_required
+def manage_allowed():
+    allowed_domains = get_allow_list()
+    changes_pending = session.get("changes_pending", False)
+    return render_template(
+        "manage_allowed.html",
+        allowed_domains=allowed_domains,
+        changes_pending=changes_pending,
+        page="allowed"
+    )
+
+@app.route("/manage_blocked", methods=["GET", "POST"])
+@login_required
+def manage_blocked():
+    blocked_domains = get_hidden_list()
+    return render_template(
+        "manage_blocked.html",
+        blocked_domains=blocked_domains,
+        page="blocked"
+    )
+
+@app.route("/manage_unsorted", methods=["GET", "POST"])
+@login_required
+def manage_unsorted():
+    allow_list = set(get_allow_list())
+    hidden_list = set(get_hidden_list())
+    blocked_domains = get_blocked_domains()
+    unsorted_domains = [
+        d for d in blocked_domains
+        if get_parent_domain(d) not in allow_list and get_parent_domain(d) not in hidden_list
+    ]
+    return render_template(
+        "manage_unsorted.html",
+        unsorted_domains=unsorted_domains,
+        page="unsorted"
+    )
+
+# --- Squid/Domain Management actions (POST endpoints for buttons) ---
+
+@app.route("/add_allowed_domain", methods=["POST"])
+@login_required
+def add_allowed_domain():
+    domain = request.form.get("domain")
+    if domain:
+        add_to_allow_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_allowed"))
+
+@app.route("/bulk_remove_allowed", methods=["POST"])
+@login_required
+def bulk_remove_allowed():
+    selected = request.form.getlist("selected_domains")
+    for domain in selected:
+        remove_from_allow_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_allowed"))
+
+@app.route("/remove_allowed_domain", methods=["POST"])
+@login_required
+def remove_allowed_domain():
+    domain = request.form.get("domain")
+    if domain:
+        remove_from_allow_list(domain)
+        mark_changes_pending()
+    return redirect(url_for("manage_allowed"))
+
+@app.route("/restart_squid", methods=["POST"])
+@login_required
+def restart_squid():
+    try:
+        subprocess.run(["sudo", "systemctl", "restart", "squid"], check=True)
+        session.pop("changes_pending", None)
+        return jsonify({"message": "Squid restarted!"})
+    except Exception as e:
+        return jsonify({"message": f"Failed to restart Squid: {e}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
