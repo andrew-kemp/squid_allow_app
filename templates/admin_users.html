@@ -9,7 +9,9 @@
 <div class="card">
     <h2>Manage Users</h2>
     <div style="margin-bottom:18px;">
+        {% if session.admin_level >= 1 %}
         <a href="{{ url_for('admin_users_add') }}" class="btn btn-success">+ Add User</a>
+        {% endif %}
         <a href="{{ url_for('admin') }}" class="btn btn-secondary" style="float:right;">Back to Admin Panel</a>
     </div>
     <table>
@@ -35,14 +37,16 @@
             <td>
               {% if session.admin_level == 99 or (session.admin_level > 0 and user.admin_level < 99) %}
                 <a href="{{ url_for('admin_users_edit', user_id=user.id) }}" class="btn btn-secondary btn-sm">Edit</a>
-                <a href="{{ url_for('admin_users_reset_password', user_id=user.id) }}" class="btn btn-warning btn-sm">Reset Password</a>
+                {% if user.admin_level < 99 %}
+                  <a href="{{ url_for('admin_users_reset_password', user_id=user.id) }}" class="btn btn-warning btn-sm">Reset Password</a>
+                {% endif %}
                 {% if session.admin_level == 99 %}
-                  <form method="post" action="{{ url_for('admin_users_delete', user_id=user.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete user {{ user.username }}?')">Delete</button>
-                  </form>
-                  <form method="post" action="{{ url_for('admin_users_reset_mfa', user_id=user.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-secondary btn-sm">Reset MFA</button>
-                  </form>
+                  {% if user.admin_level < 99 %}
+                    <form method="post" action="{{ url_for('admin_users_delete', user_id=user.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete user {{ user.username }}?')">Delete</button>
+                    </form>
+                    <a href="{{ url_for('admin_users_reset_mfa', user_id=user.id) }}" class="btn btn-secondary btn-sm">Reset MFA</a>
+                  {% endif %}
                 {% endif %}
               {% endif %}
             </td>
@@ -51,7 +55,7 @@
     </table>
     {% if session.admin_level == 99 %}
       <div style="margin-top:24px;">
-        <a href="{{ url_for('login_audit') }}" class="btn btn-secondary">View Login Audit</a>
+        <a href="{{ url_for('admin_login_audit') }}" class="btn btn-secondary">View Login Audit</a>
       </div>
     {% endif %}
 </div>
