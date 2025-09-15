@@ -110,24 +110,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not is_logged_in() or not is_admin():
-            flash('Admin access required', 'danger')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-def god_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not is_logged_in() or not is_god():
-            flash('God-level admin required', 'danger')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
 # --- Enforce initial setup if no users exist ---
 @app.before_request
 def enforce_first_user_setup():
@@ -147,7 +129,7 @@ def allow_static_files():
     if request.endpoint and request.endpoint.startswith('static'):
         return
 
-# --- Domain helpers (unchanged) ---
+# --- Domain helpers ---
 
 def get_blocked_domains():
     domains = set()
@@ -222,7 +204,7 @@ def mark_changes_pending():
 def clear_changes_pending():
     session.pop("changes_pending", None)
 
-# --- Initial Setup Wizard (unchanged) ---
+# --- Initial Setup Wizard ---
 
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
@@ -573,9 +555,9 @@ def admin_security_settings():
 def admin():
     return render_template("admin.html")
 
-# --- Existing Squid/domain management routes unchanged ---
+# --- (Domain and Squid management routes unchanged) ---
 
-# ... (all unchanged routes from your original app.py)
+# ... (Put your existing routes for manage_allowed, manage_blocked, etc. here)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
